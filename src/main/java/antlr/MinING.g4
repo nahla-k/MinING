@@ -55,18 +55,18 @@ INSTRUCTION: 'INSTRUCTION';
 
 
 
-prog: VAR_GLOBAL LBRACE declaration* RBRACE
-     DECLARATION LBRACE declaration* RBRACE
+prog: VAR_GLOBAL LBRACE globaldeclaration* RBRACE
+     DECLARATION LBRACE localdeclaration* RBRACE
      INSTRUCTION LBRACE instruction* RBRACE EOF; //i have to put eof or error handling won't work
 
 
 globaldeclaration: declaration;
 localdeclaration: declaration;
-declaration: TYPE ID (EQUAL (expr_arith|array_init))? (COMA ID (EQUAL (expr_arith|array_init))?)* SEMICOLON
-           | CONST TYPE ID EQUAL (expr_arith|array_init) (COMA ID EQUAL (expr_arith|array_init))* SEMICOLON;
-array_init: '[' expr_arith (',' expr_arith)* ']' ;
+declaration: TYPE ID (EQUAL initialValue)? (COMA ID (EQUAL initialValue)?)* SEMICOLON
+           | CONST TYPE ID EQUAL (initialValue) (COMA ID EQUAL initialValue)* SEMICOLON;
+array_init: '[' (expr_arith|CHAR) (',' (expr_arith|CHAR))* ']' ;
 expr: expr_logical;
-
+initialValue:expr_arith|array_init|CHAR;
 expr_logical: expr_logical AND expr_logical
             | expr_logical OR expr_logical
             | NOT expr_logical
@@ -76,15 +76,12 @@ expr_logical: expr_logical AND expr_logical
             ;
 
 expr_comparison: expr_arith (GT | LT | GE | LE | EQ | NEQ) expr_arith
-               | LPAREN expr_arith (GT | LT | GE | LE | EQ | NEQ) expr_arith RPAREN
                ;
 
 expr_arith: expr_arith (MULT | DIV) expr_arith
           | expr_arith (PLUS | MINUS) expr_arith
-          | LPAREN expr_arith RPAREN
           | NUM
           | ID
-          | CHAR
           ;
 
 instruction: affectation | condition | boucle | entree | sortie ;

@@ -1,6 +1,7 @@
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 public class SymbolTable {
     private Map<String, Symbol> symbols;
@@ -16,7 +17,9 @@ public class SymbolTable {
 
 
 
-
+    public Set<String> getKeys() {
+        return symbols.keySet(); // Directly call keySet() on the HashMap
+    }
     public boolean updateValue(String name, Object newValue) {
         Symbol symbol = symbols.get(name);
         if (symbol != null) {
@@ -68,6 +71,13 @@ public class SymbolTable {
     public boolean contains(String name) {
         Symbol symbol = symbols.get(name);
         return symbol != null ;
+    }
+
+    @Override
+    public String toString() {
+        return "SymbolTable{" +
+                "symbols=" + symbols +
+                '}';
     }
 
     public String getType(String name) {

@@ -5,20 +5,21 @@ public class Symbol {
     String type;
     String scope;
     Object value;
-
+    boolean isInitialised;
     Float size;
     String offset;
     int lineDeclarationNbr;
     int dimension;
     int arraySize;
     boolean isConstant;
-    ArrayList<int> linesOfUsage;
+    ArrayList<Integer> linesOfUsage;
 
     public Symbol(String type, boolean isConstant) {
         this.type = type;
         this.isConstant = isConstant;
-        linesOfUsage = new ArrayList<int>();
+        linesOfUsage = new ArrayList<>();
         this.dimension=0;
+        this.isInitialised=false;
     }
 
     public String getScope() {
@@ -45,12 +46,8 @@ public class Symbol {
         isConstant = constant;
     }
 
-    public List<int> getLinesOfUsage() {
+    public ArrayList<Integer> getLinesOfUsage() {
         return linesOfUsage;
-    }
-
-    public void setLinesOfUsage(ArrayList<int> linesOfUsage) {
-        this.linesOfUsage = linesOfUsage;
     }
 
     public Symbol(String type, String scope, Object value, Float size, Object initialValue, String offset, int lineDeclarationNbr, int arraySize) {
@@ -78,6 +75,7 @@ public class Symbol {
 
     public void setValue(Object value) {
         this.value = value;
+        this.isInitialised=true;
     }
 
     public Float getSize() {
@@ -113,6 +111,23 @@ public class Symbol {
 
     public void setArraySize(int arraySize) {
         this.arraySize = arraySize;
+    }
+
+    @Override
+    public String toString() {
+        return "Symbol{" +
+                "type='" + type + '\'' +
+                ", scope='" + scope + '\'' +
+                ", value=" + value +
+                ", isInitialised=" + isInitialised +
+                ", size=" + size +
+                ", offset='" + offset + '\'' +
+                ", lineDeclarationNbr=" + lineDeclarationNbr +
+                ", dimension=" + dimension +
+                ", arraySize=" + arraySize +
+                ", isConstant=" + isConstant +
+                ", linesOfUsage=" + linesOfUsage +
+                '}';
     }
 }
 enum Type{INTEGER, CHAR, FLOAT}

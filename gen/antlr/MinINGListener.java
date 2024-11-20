@@ -18,16 +18,6 @@ public interface MinINGListener extends ParseTreeListener {
 	 */
 	void exitProg(MinINGParser.ProgContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link MinINGParser#array_init}.
-	 * @param ctx the parse tree
-	 */
-	void enterArray_init(MinINGParser.Array_initContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link MinINGParser#array_init}.
-	 * @param ctx the parse tree
-	 */
-	void exitArray_init(MinINGParser.Array_initContext ctx);
-	/**
 	 * Enter a parse tree produced by {@link MinINGParser#globaldeclaration}.
 	 * @param ctx the parse tree
 	 */
@@ -58,6 +48,16 @@ public interface MinINGListener extends ParseTreeListener {
 	 */
 	void exitDeclaration(MinINGParser.DeclarationContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link MinINGParser#array_init}.
+	 * @param ctx the parse tree
+	 */
+	void enterArray_init(MinINGParser.Array_initContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MinINGParser#array_init}.
+	 * @param ctx the parse tree
+	 */
+	void exitArray_init(MinINGParser.Array_initContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link MinINGParser#expr}.
 	 * @param ctx the parse tree
 	 */
@@ -67,6 +67,16 @@ public interface MinINGListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitExpr(MinINGParser.ExprContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link MinINGParser#initialValue}.
+	 * @param ctx the parse tree
+	 */
+	void enterInitialValue(MinINGParser.InitialValueContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MinINGParser#initialValue}.
+	 * @param ctx the parse tree
+	 */
+	void exitInitialValue(MinINGParser.InitialValueContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link MinINGParser#expr_logical}.
 	 * @param ctx the parse tree

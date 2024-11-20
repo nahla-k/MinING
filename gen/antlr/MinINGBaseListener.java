@@ -29,18 +29,6 @@ public class MinINGBaseListener implements MinINGListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterArray_init(MinINGParser.Array_initContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitArray_init(MinINGParser.Array_initContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
 	@Override public void enterGlobaldeclaration(MinINGParser.GlobaldeclarationContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -77,6 +65,18 @@ public class MinINGBaseListener implements MinINGListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterArray_init(MinINGParser.Array_initContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitArray_init(MinINGParser.Array_initContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterExpr(MinINGParser.ExprContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -84,6 +84,18 @@ public class MinINGBaseListener implements MinINGListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitExpr(MinINGParser.ExprContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterInitialValue(MinINGParser.InitialValueContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitInitialValue(MinINGParser.InitialValueContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

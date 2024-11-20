@@ -17,12 +17,6 @@ public interface MinINGVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitProg(MinINGParser.ProgContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link MinINGParser#array_init}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitArray_init(MinINGParser.Array_initContext ctx);
-	/**
 	 * Visit a parse tree produced by {@link MinINGParser#globaldeclaration}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -41,11 +35,23 @@ public interface MinINGVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitDeclaration(MinINGParser.DeclarationContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link MinINGParser#array_init}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitArray_init(MinINGParser.Array_initContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link MinINGParser#expr}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitExpr(MinINGParser.ExprContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link MinINGParser#initialValue}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitInitialValue(MinINGParser.InitialValueContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link MinINGParser#expr_logical}.
 	 * @param ctx the parse tree
