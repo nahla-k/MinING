@@ -1,12 +1,10 @@
 import antlr.MinINGBaseListener;
+import antlr.MinINGLexer;
 import antlr.MinINGParser;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
@@ -36,6 +34,7 @@ public class CostumeMinINGListener extends MinINGBaseListener {
         String type = ctx.TYPE().getText();
         boolean isConstant = ctx.CONST() != null;
         int count=0;
+
         for (TerminalNode idNode : ctx.ID()) {
             String name = idNode.getText();
             Symbol symbol = new Symbol(type, isConstant);
@@ -54,7 +53,7 @@ public class CostumeMinINGListener extends MinINGBaseListener {
                 if (count < ctx.initialValue().size() && ctx.initialValue(count) != null){ //in case the array is initialized
                     handleArrayInitial(ctx.initialValue(count).array_init().getText(),type,symbol);
                 }
-            }else if (count < ctx.initialValue().size() && ctx.initialValue(count)!=null){ //if it's not an array
+            }else if (count < ctx.initialValue().size() && ctx.initialValue(count)!=null && ctx.initialValue(count).getText().trim().length() > 0){ //if it's not an array
 
                 String value = ctx.initialValue(count).getText();
                 Object evaluatedValue = null;
@@ -93,36 +92,107 @@ public class CostumeMinINGListener extends MinINGBaseListener {
         if (symbolTable.isConstant(varName)) {
             System.err.println("Error: Attempt to modify constant variable " + varName);
             return;
+        } else {
+            String type = symbolTable.getType(varName);
+            String value = ctx.expr_arith().getText();
+            Object evaluatedValue = null;
+            try {
+                switch (type) {
+                    case "INTEGER" -> evaluatedValue = evaluate(value, "INTEGER");
+                    case "FLOAT" -> evaluatedValue = evaluate(value, "FLOAT");
+                    case "CHAR" -> {
+                        if (isChar(value)) {
+                            evaluatedValue = extractChar(value); // Get the character from 'a'
+                        } else {
+                            throw new IllegalArgumentException("Invalid CHAR value: " + value);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println("Error evaluating initial value for variable " + varName + ": " + e.getMessage());
+
+            }
+            symbolTable.setValue(varName,evaluatedValue);
+            int lineNumber = ctx.start.getLine();
+            symbolTable.addUsageLine(varName, lineNumber);
+
         }
-        int lineNumber = ctx.start.getLine();
-        symbolTable.addUsageLine(varName, lineNumber);
-
     }
-
     @Override
     public void enterEntree(MinINGParser.EntreeContext ctx) {
-        String name = ctx.ID().getText();
-        Symbol symbol = symbolTable.getSymbol(name);
-        if (symbol == null) {
-            System.err.println("Error: Variable " + name + " not declared before usage.");
-        } else {
-            symbolTable.addUsageLine(name, ctx.start.getLine());
-
+        String varName = ctx.ID().getText();
+        boolean symbol = symbolTable.contains(varName);
+        if (!symbol) {
+            System.err.println("Error: Variable " + varName + " not declared before usage.");
+            return;
         }
+        if (symbolTable.isConstant(varName)) {
+            System.err.println("Error: Attempt to modify constant variable " + varName);
+            return;
+        }
+        String type = symbolTable.getType(varName);
+        Object value = null;
+        Scanner scanner = new Scanner(System.in);  // Assuming Scanner is used for input
+        try {
+            switch (type) {
+                case "INTEGER":
+                    value = Integer.parseInt(scanner.nextLine());
+                    break;
+                case "FLOAT":
+                    value = Float.parseFloat(scanner.nextLine());
+                    break;
+                case "CHAR":
+                    String charInput = scanner.nextLine();
+                    if (isChar(charInput)) {
+                        value = extractChar(charInput); // Get the character from 'a'
+                    } else {
+                        throw new IllegalArgumentException("Invalid CHAR value: " + value);
+                    }
+                    break;
+                default:
+                    System.err.println("Error: Unsupported type for variable " + varName);
+                    return;
+            }
+        } catch (Exception e) {
+            System.err.println("Error reading value for " + varName + ": " + e.getMessage());
+            return;
+        }
+        symbolTable.setValue(varName,value);
+        int lineNumber = ctx.start.getLine();
+        symbolTable.addUsageLine(varName, lineNumber);
     }
 
     @Override
+
     public void enterSortie(MinINGParser.SortieContext ctx) {
-        for (TerminalNode idNode : ctx.ID()) {
-            String name = idNode.getText();
-            Symbol symbol = symbolTable.getSymbol(name);
-            if (symbol == null) {
-                System.err.println("Error: Variable " + name + " not declared before usage.");
-            } else {
-                symbolTable.addUsageLine(name,ctx.start.getLine());
+        for (ParseTree child : ctx.children) {
+            if (child instanceof TerminalNode) {
+                TerminalNode terminalNode = (TerminalNode) child;
+
+                // Handle string literals
+                if (terminalNode.getSymbol().getType() == MinINGLexer.STRING_LITERAL) {
+                    String literal = terminalNode.getText();
+                    // Remove the surrounding double quotes
+                    String value = literal.substring(1, literal.length() - 1);
+                    System.out.print(value + " ");
+                }
+
+                // Handle variable identifiers
+                else if (terminalNode.getSymbol().getType() == MinINGLexer.ID) {
+                    String name = terminalNode.getText();
+                    Symbol symbol = symbolTable.getSymbol(name);
+                    if (symbol == null) {
+                        System.err.println("\nError: Variable " + name + " not declared before usage.");
+                    } else {
+                        symbolTable.addUsageLine(name, ctx.start.getLine());
+                        System.out.print(symbol.value);
+                    }
+                }
             }
         }
+        System.out.println();
     }
+
 
 
 
@@ -136,53 +206,55 @@ public class CostumeMinINGListener extends MinINGBaseListener {
 
     @Override
     public void enterBoucle(MinINGParser.BoucleContext ctx) {
-        String counterId = ctx.ID().getText();  // Counter identifier
-        // Determine start, stop, and step components
-        String start = ctx.expr_arith(0).getText(); // Start value
-        String step = ctx.expr_arith(1).getText();  // Stop value
-        String stop = ctx.expr_arith(2).getText();  // Step value
+        String counterId = ctx.ID().getText(); // Counter identifier
+
+        // Check if the counter variable is declared
         if (!symbolTable.contains(counterId)) {
             System.err.println("Error: Variable " + counterId + " not declared before usage.");
             return;
         }
-        symbolTable.addUsageLine(counterId,ctx.start.getLine());
+        if (symbolTable.isConstant(counterId)) {
+            System.err.println("Error: Attempt to modify constant variable " + counterId);
+            return;
+        }
+        // Log usage of the loop counter
+        symbolTable.addUsageLine(counterId, ctx.start.getLine());
 
-        for (int i = 0; i < 3; i++) {
-            String expr = ctx.expr_arith(i).getText();
+        try {
+            // Evaluate start, stop, and step using the counter's type
+            double start = (double) evaluate(ctx.expr_arith(0).getText(), "FLOAT");
+            double step = (double) evaluate(ctx.expr_arith(1).getText(), "FLOAT");
+            double stop = (double) evaluate(ctx.expr_arith(2).getText(), "FLOAT");
+            // treating the loop logic
+            symbolTable.setValue(counterId,start);
+            if (step == 0) {
+                System.err.println("Error: Step value cannot be zero.");
+                return;
+            }
+            while ((step > 0 && (double) symbolTable.getValue(counterId) <= stop) || (step < 0 && (double) symbolTable.getValue(counterId) >= stop)) {
+                if (ctx.block() != null) {
+                    enterBlock(ctx.block());
+                }
+                // Update the counter variable in the symbol table
+                symbolTable.setValue(counterId,(double) symbolTable.getValue(counterId) + step);
+            }
 
-            // Check if expr is a number (literal)
-            if (isInteger(expr)) {
-                System.out.println("Literal found: " + expr);
-            }
-            // Check if expr is a valid identifier
-            else if (symbolTable.contains(expr)) {
-                Symbol symbol = symbolTable.getSymbol(expr);
-                symbolTable.addUsageLine(expr, ctx.start.getLine());
-            }
-            // If neither, it's an undeclared identifier
-            else {
-                System.err.println("Error: Variable " + expr + " not declared before usage.");
-            }
+        } catch (IllegalArgumentException | ScriptException e) {
+            System.err.println("Error in loop expressions: " + e.getMessage());
         }
-        if (symbolTable.contains(start)) {
-            Symbol startSymbol = symbolTable.getSymbol(start);
-            // Handle start as an identifier
-            symbolTable.addUsageLine(start,ctx.start.getLine());
-        }
-        if (symbolTable.contains(stop)) {
-            Symbol stopSymbol = symbolTable.getSymbol(stop);
-            symbolTable.addUsageLine(stop,ctx.start.getLine());
-            // Handle stop as an identifier
-        }
-        if (symbolTable.contains(step)) {
-            Symbol stepSymbol = symbolTable.getSymbol(step);
-            symbolTable.addUsageLine(step,ctx.start.getLine());
-            // Handle step as an identifier
-        }
-
-        // Additional semantic checks can be added here as needed
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>The default implementation does nothing.</p>
+     *
+     * @param ctx
+     */
+    @Override
+    public void enterBlock(MinINGParser.BlockContext ctx) {
+        super.enterBlock(ctx);
+    }
 
     /**
      * {@inheritDoc}
@@ -201,10 +273,7 @@ public class CostumeMinINGListener extends MinINGBaseListener {
                 System.err.println("Error: Variable '" + id + "' used in condition is not declared.");
                 return;
             } else {
-                // Additional semantic checks on the symbol if needed
-                Symbol symbol = symbolTable.getSymbol(id);
                 symbolTable.addUsageLine(id,ctx.start.getLine());
-                // Perform any type-related checks on the symbol here
             }
         }
 
@@ -251,7 +320,7 @@ public class CostumeMinINGListener extends MinINGBaseListener {
     public char extractChar(String input) {
         return input.charAt(1);
     }
-    public Object evaluate(String expr, String type) throws ScriptException {
+    public  Object evaluate(String expr, String type) throws ScriptException {
 
         // Tokenize the expression
         String[] tokens = expr.split("\\s+");
@@ -268,24 +337,24 @@ public class CostumeMinINGListener extends MinINGBaseListener {
                     throw new IllegalArgumentException("incompatibale types: " + token);
 
                 }
-                // Replace ID with its value in the expression
+                if (value instanceof Integer && "FLOAT".equals(type)) {
+                    value = ((Integer) value).doubleValue(); // Promote INTEGER to FLOAT
+                }
                 expr = expr.replace(token, value.toString());
+
             }
         }
 
         try {
             double result = ExpressionEvaluator.evaluateExpression(expr, extractSymbolTableAsMap());
-
-
-
-        switch (type) {
+            switch (type) {
             case "INTEGER":
                 if (result % 1 != 0) {
                     throw new IllegalArgumentException("Expression result is not an integer: " + result);
                 }
                 return (int) result;
             case "FLOAT":
-                return result; // It's already a double
+                return  result; // It's already a double
             case "CHAR":
                 throw new IllegalArgumentException("Arithmetic expressions cannot evaluate to CHAR");
             default:
@@ -297,7 +366,7 @@ public class CostumeMinINGListener extends MinINGBaseListener {
         }
 
     }
-    public boolean isIdentifier(String token) {
+    public static boolean isIdentifier(String token) {
         return token.matches("[A-Z][a-z0-9]*(\\[[0-9]+\\])?");
         // Regex for identifiers
     }
@@ -337,7 +406,7 @@ public class CostumeMinINGListener extends MinINGBaseListener {
             name = baseName;
         } catch (NumberFormatException e) {
             System.err.println("Error parsing array size for identifier: " + name);
-            return;
+
         }
     }
     private void handleArrayInitial(String arrayContent, String type,Symbol symbol){
@@ -381,6 +450,32 @@ public class CostumeMinINGListener extends MinINGBaseListener {
             }
         }
         return map;
+    }
+    private boolean evaluateCondition(String expr) throws ScriptException {
+        // Tokenize the expression
+        String[] tokens = expr.split("\\s+");
+        for (String token : tokens) {
+            if (isIdentifier(token)) { // Check if token is an ID
+                if (!symbolTable.contains(token)) {
+                    throw new IllegalArgumentException("Undeclared identifier: " + token);
+                }
+                Object value = symbolTable.getSymbol(token).getValue();
+                if (value == null) {
+                    throw new IllegalArgumentException("Uninitialized identifier: " + token);
+                }
+                // Replace ID with its value in the expression
+                expr = expr.replace(token, value.toString());
+            }
+        }
+
+        // Evaluate the logical or comparison expression
+        try {
+            boolean result = ExpressionEvaluator.evaluateBooleanExpression(expr, extractSymbolTableAsMap());
+            return result;
+        } catch (Exception e) {
+            e.printStackTrace(); // Log the exception or handle it as needed
+            return false; // Default to false if the expression cannot be evaluated
+        }
     }
 
 

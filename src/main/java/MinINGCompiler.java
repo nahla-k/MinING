@@ -47,7 +47,7 @@ public class MinINGCompiler {
         return parser.declaration(); // Adjust based on your grammar rule
     }
     public static void main(String[] args) {
-        String testInput = "INTEGER  F , A=6; ";
+        String testInput = "INTEGER F,A=6,B=10,C,D=1; ";
         MinINGLexer lexer = new MinINGLexer(CharStreams.fromString(testInput));
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         MinINGParser parser = new MinINGParser(tokens);

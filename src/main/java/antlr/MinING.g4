@@ -87,7 +87,7 @@ expr_arith: expr_arith (MULT | DIV) expr_arith
 instruction: affectation | condition | boucle | entree | sortie ;
 
 sortie: WRITE LPAREN (STRING_LITERAL | ID) (COMA (STRING_LITERAL | ID))* RPAREN SEMICOLON;
-entree: READ LPAREN   ID RPAREN SEMICOLON;
+entree: READ LPAREN  ID RPAREN SEMICOLON;
 boucle: FOR LPAREN ID EQUAL expr_arith TO expr_arith TO expr_arith RPAREN block;
 condition: IF LPAREN expr RPAREN block (ELSE block)? ;
 affectation: ID EQUAL expr_arith SEMICOLON;
