@@ -73,6 +73,7 @@ expr_logical: expr_logical AND expr_logical
             | LPAREN expr_logical RPAREN
             | expr_comparison
             | expr_arith
+            | CHAR
             ;
 
 expr_comparison: expr_arith (GT | LT | GE | LE | EQ | NEQ) expr_arith
@@ -91,6 +92,6 @@ entree: READ LPAREN  ID RPAREN SEMICOLON;
 boucle: FOR LPAREN ID EQUAL expr_arith TO expr_arith TO expr_arith RPAREN block;
 condition: IF LPAREN expr RPAREN block (ELSE block)? ;
 affectation: ID EQUAL expr_arith SEMICOLON;
-block: LBRACE instruction* RBRACE;
+block: LBRACE (instruction)* RBRACE;
 
 

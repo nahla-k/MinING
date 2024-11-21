@@ -8,6 +8,8 @@ import java.util.*;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
+import org.apache.commons.jexl3.*;
+
 public class CostumeMinINGListener extends MinINGBaseListener {
     private SymbolTable symbolTable;
     private boolean isGlobalScope = false;
@@ -31,7 +33,14 @@ public class CostumeMinINGListener extends MinINGBaseListener {
     }
     @Override
     public void enterDeclaration(MinINGParser.DeclarationContext ctx) {
-        String type = ctx.TYPE().getText();
+        String type;
+        if (ctx.TYPE() != null) {  // Add this null check
+             type = ctx.TYPE().getText();
+            System.out.println("Type: " + type);
+        } else {
+            System.err.println("Error: TYPE is null in declaration.");
+            return;
+        }
         boolean isConstant = ctx.CONST() != null;
         int count=0;
 
@@ -146,7 +155,7 @@ public class CostumeMinINGListener extends MinINGBaseListener {
                     if (isChar(charInput)) {
                         value = extractChar(charInput); // Get the character from 'a'
                     } else {
-                        throw new IllegalArgumentException("Invalid CHAR value: " + value);
+                        throw new IllegalArgumentException("Invalid CHAR value: " + charInput);
                     }
                     break;
                 default:
@@ -251,10 +260,54 @@ public class CostumeMinINGListener extends MinINGBaseListener {
      *
      * @param ctx
      */
+//    @Override
+//    public void enterBlock(MinINGParser.BlockContext ctx) {
+//        // Enter a new block scope (if necessary for your symbol table implementation)
+//        for (MinINGParser.InstructionContext instructionCtx : ctx.instruction()) {
+//                // Dispatch to appropriate methods based on the type of instruction
+//                if (instructionCtx.affectation() != null) {
+//                    enterAffectation(instructionCtx.affectation());
+//                } else if (instructionCtx.condition() != null) {
+//                    enterCondition(instructionCtx.condition());
+//                } else if (instructionCtx.boucle() != null) {
+//                    enterBoucle(instructionCtx.boucle());
+//                } else if (instructionCtx.entree() != null) {
+//                    enterEntree(instructionCtx.entree());
+//                } else if (instructionCtx.sortie() != null) {
+//                    enterSortie(instructionCtx.sortie());
+//                } else {
+//                    System.err.println("Unknown instruction type at line " + instructionCtx.start.getLine());
+//                }
+//            }
+//
+//    }
     @Override
     public void enterBlock(MinINGParser.BlockContext ctx) {
-        super.enterBlock(ctx);
+        System.out.println("Entering block: " + ctx.getText());
+
+        // Iterate over all statements in the block
+        for (MinINGParser.InstructionContext statement : ctx.instruction()) {
+            enterInstruction(statement); // Process each statement
+        }
     }
+    @Override
+    public void enterInstruction(MinINGParser.InstructionContext ctx) {
+        if (ctx.affectation() != null) {
+            enterAffectation(ctx.affectation());
+        } else if (ctx.condition() != null) {
+            enterCondition(ctx.condition());
+        } else if (ctx.boucle() != null) {
+            enterBoucle(ctx.boucle());
+        } else if (ctx.entree() != null) {
+                    enterEntree(ctx.entree());
+               } else if (ctx.sortie() != null) {
+                    enterSortie(ctx.sortie());
+                } else {
+            System.err.println("Unknown statement type: " + ctx.getText());
+        }
+    }
+
+
 
     /**
      * {@inheritDoc}
@@ -268,19 +321,48 @@ public class CostumeMinINGListener extends MinINGBaseListener {
         List<String> ids = new ArrayList<>();
         findIdentifiers(ctx.expr(), ids);
 
+        // Ensure all identifiers in the condition are declared
         for (String id : ids) {
             if (!symbolTable.contains(id)) {
                 System.err.println("Error: Variable '" + id + "' used in condition is not declared.");
                 return;
             } else {
-                symbolTable.addUsageLine(id,ctx.start.getLine());
+                symbolTable.addUsageLine(id, ctx.start.getLine());
             }
         }
 
-        // Process the IF and ELSE blocks
-        enterBlock(ctx.block(0));
-        if (ctx.ELSE() != null) {
-            enterBlock(ctx.block(1));
+        // Create a JEXL context to evaluate the expressions
+        JexlEngine jexl = new JexlBuilder().create();
+        JexlContext jexlContext = new MapContext();
+
+        // Populate the context with values from the symbol table
+        for (String id : ids) {
+            Symbol symbol = symbolTable.getSymbol(id);
+            if (symbol != null && symbol.getValue() != null) {
+                jexlContext.set(id, symbol.getValue());
+            }
+        }
+
+        try {
+            // Evaluate the condition expression
+            String condition = ctx.expr().getText();
+            JexlExpression expression = jexl.createExpression(condition);
+            Object result = expression.evaluate(jexlContext);
+
+            // Handle the result based on its type (should be a boolean for conditions)
+            if (result instanceof Boolean) {
+                boolean conditionResult = (Boolean) result;
+                if (conditionResult) {
+                    enterBlock(ctx.block(0));
+                } else if (ctx.ELSE() != null) {
+
+                    enterBlock(ctx.block(1));
+                }
+            } else {
+                System.err.println("Error: Condition did not evaluate to a boolean.");
+            }
+        } catch (Exception e) {
+            System.err.println("Error evaluating condition: " + e.getMessage());
         }
     }
     private void findIdentifiers(ParseTree expr, List<String> ids) {
@@ -376,14 +458,7 @@ public class CostumeMinINGListener extends MinINGBaseListener {
     }
 
     // Method to handle arithmetic expressions (this could involve parsing the expression further)
-    private void handleArithmeticExpression(String expr, MinINGParser.BoucleContext ctx) {
-        // Here, you could parse and evaluate the expression if it's only literals,
-        // or check each component if it involves identifiers.
-        System.out.println("Arithmetic expression found: " + expr);
 
-        // Optional: Parse each part of the expression and check symbol table for identifiers
-        // This step depends on how you want to handle further processing.
-    }
     private void handleArrayDeclaration(String name, Symbol symbol){
         String baseName = name.substring(0, name.indexOf('['));
         String arraySizeStr = name.substring(name.indexOf('[') + 1, name.indexOf(']'));
@@ -451,32 +526,7 @@ public class CostumeMinINGListener extends MinINGBaseListener {
         }
         return map;
     }
-    private boolean evaluateCondition(String expr) throws ScriptException {
-        // Tokenize the expression
-        String[] tokens = expr.split("\\s+");
-        for (String token : tokens) {
-            if (isIdentifier(token)) { // Check if token is an ID
-                if (!symbolTable.contains(token)) {
-                    throw new IllegalArgumentException("Undeclared identifier: " + token);
-                }
-                Object value = symbolTable.getSymbol(token).getValue();
-                if (value == null) {
-                    throw new IllegalArgumentException("Uninitialized identifier: " + token);
-                }
-                // Replace ID with its value in the expression
-                expr = expr.replace(token, value.toString());
-            }
-        }
 
-        // Evaluate the logical or comparison expression
-        try {
-            boolean result = ExpressionEvaluator.evaluateBooleanExpression(expr, extractSymbolTableAsMap());
-            return result;
-        } catch (Exception e) {
-            e.printStackTrace(); // Log the exception or handle it as needed
-            return false; // Default to false if the expression cannot be evaluated
-        }
-    }
 
 
 

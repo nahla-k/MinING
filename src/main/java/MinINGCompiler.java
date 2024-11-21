@@ -47,20 +47,55 @@ public class MinINGCompiler {
         return parser.declaration(); // Adjust based on your grammar rule
     }
     public static void main(String[] args) {
-        String testInput = "INTEGER F,A=6,B=10,C,D=1; ";
+        String testInput = """
+        VAR_GLOBAL{}
+        DECLARATION{
+        INTEGER A=6,B=10,D=1;
+        }
+        INSTRUCTION{
+        IF(A + B  < D){
+        A = A+10;
+        WRITE("haha");
+        }ELSE{
+        B = 0;
+        WRITE("hoho");
+        }
+        }
+        """;
+
+        // Step 1: Lexical Analysis
         MinINGLexer lexer = new MinINGLexer(CharStreams.fromString(testInput));
         CommonTokenStream tokens = new CommonTokenStream(lexer);
+
+        // Step 2: Parsing
         MinINGParser parser = new MinINGParser(tokens);
 
-        MinINGParser.DeclarationContext ctx = parser.declaration();
+        // Add an error listener for better diagnostics
+        parser.removeErrorListeners(); // Remove default console error listener
+        parser.addErrorListener(new BaseErrorListener() {
+            @Override
+            public void syntaxError(Recognizer<?, ?> recognizer, Object offendingSymbol, int line, int charPositionInLine, String msg, RecognitionException e) {
+                System.err.printf("Syntax error at line %d:%d - %s%n", line, charPositionInLine, msg);
+            }
+        });
+
+        // Parse the input
+        MinINGParser.ProgContext progContext = parser.prog();
+
+        // Step 3: Walking the Parse Tree
         SymbolTable symbolTable = new SymbolTable();
-
         CostumeMinINGListener listener = new CostumeMinINGListener(symbolTable);
-        listener.enterDeclaration(ctx);
 
-        // Print the symbol table for validation
-        System.out.println(symbolTable.toString());
+        ParseTreeWalker walker = new ParseTreeWalker();
+        walker.walk(listener, progContext);
+
+        // Step 4: Output Results
+        System.out.println("Parse Tree: ");
+        System.out.println(progContext.toStringTree(parser)); // Print parse tree
+        System.out.println("\nSymbol Table:");
+        System.out.println(symbolTable.toString()); // Print the symbol table
     }
+
 
 
 }
