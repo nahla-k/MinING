@@ -22,7 +22,7 @@ public class MinINGLexer extends Lexer {
 		PLUS=18, MINUS=19, MULT=20, DIV=21, TO=22, COMA=23, IF=24, ELSE=25, FOR=26, 
 		WRITE=27, READ=28, COMMENT=29, WS=30, TYPE=31, NUM=32, CONST=33, ID=34, 
 		INTEGER=35, FLOAT=36, CHAR=37, STRING_LITERAL=38, VAR_GLOBAL=39, DECLARATION=40, 
-		INSTRUCTION=41;
+		INSTRUCTIONS=41;
 	public static String[] channelNames = {
 		"DEFAULT_TOKEN_CHANNEL", "HIDDEN"
 	};
@@ -37,7 +37,7 @@ public class MinINGLexer extends Lexer {
 			"NOT", "LT", "LE", "GT", "GE", "EQ", "NEQ", "LPAREN", "RPAREN", "PLUS", 
 			"MINUS", "MULT", "DIV", "TO", "COMA", "IF", "ELSE", "FOR", "WRITE", "READ", 
 			"COMMENT", "WS", "TYPE", "NUM", "CONST", "ID", "INTEGER", "FLOAT", "CHAR", 
-			"STRING_LITERAL", "VAR_GLOBAL", "DECLARATION", "INSTRUCTION"
+			"STRING_LITERAL", "VAR_GLOBAL", "DECLARATION", "INSTRUCTIONS"
 		};
 	}
 	public static final String[] ruleNames = makeRuleNames();
@@ -58,7 +58,7 @@ public class MinINGLexer extends Lexer {
 			"NOT", "LT", "LE", "GT", "GE", "EQ", "NEQ", "LPAREN", "RPAREN", "PLUS", 
 			"MINUS", "MULT", "DIV", "TO", "COMA", "IF", "ELSE", "FOR", "WRITE", "READ", 
 			"COMMENT", "WS", "TYPE", "NUM", "CONST", "ID", "INTEGER", "FLOAT", "CHAR", 
-			"STRING_LITERAL", "VAR_GLOBAL", "DECLARATION", "INSTRUCTION"
+			"STRING_LITERAL", "VAR_GLOBAL", "DECLARATION", "INSTRUCTIONS"
 		};
 	}
 	private static final String[] _SYMBOLIC_NAMES = makeSymbolicNames();

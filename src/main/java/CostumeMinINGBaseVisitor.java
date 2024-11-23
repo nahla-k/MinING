@@ -1,45 +1,92 @@
-import antlr.MinINGBaseListener;
+import antlr.MinINGBaseVisitor;
 import antlr.MinINGLexer;
 import antlr.MinINGParser;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
-
-import java.util.*;
-import javax.script.ScriptEngine;
-import javax.script.ScriptEngineManager;
-import javax.script.ScriptException;
 import org.apache.commons.jexl3.*;
 
-public class CostumeMinINGListener extends MinINGBaseListener {
+import javax.script.ScriptException;
+import java.util.*;
+
+public class CostumeMinINGBaseVisitor extends MinINGBaseVisitor {
     private SymbolTable symbolTable;
     private boolean isGlobalScope = false;
     private Deque<Set<ParseTree>> contextStack = new ArrayDeque<>();
-    CostumeMinINGListener(SymbolTable symbolTable){
-        this.symbolTable=symbolTable;
+
+    public CostumeMinINGBaseVisitor(SymbolTable symbolTable) {
+        this.symbolTable = symbolTable;
     }
     @Override
-    public void enterGlobaldeclaration(MinINGParser.GlobaldeclarationContext ctx) {
+    public Object visitExpr(MinINGParser.ExprContext ctx) {
+        return visitChildren(ctx);
+    }
+
+    @Override
+    public Object visitInitialValue(MinINGParser.InitialValueContext ctx) {
+        return visitChildren(ctx);
+    }
+
+    @Override
+    public Object visitExpr_logical(MinINGParser.Expr_logicalContext ctx) {
+        return visitChildren(ctx);
+    }
+
+    @Override
+    public Object visitExpr_comparison(MinINGParser.Expr_comparisonContext ctx) {
+        return visitChildren(ctx);
+    }
+
+    @Override
+    public Object visitExpr_arith(MinINGParser.Expr_arithContext ctx) {
+        return visitChildren(ctx);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>The default implementation returns the result of calling
+     * {@link #visitChildren} on {@code ctx}.</p>
+     *
+     * @param ctx
+     */
+    @Override
+    public Object visitGlobaldeclaration(MinINGParser.GlobaldeclarationContext ctx) {
         isGlobalScope = true;
+        return super.visitGlobaldeclaration(ctx);
+
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>The default implementation returns the result of calling
+     * {@link #visitChildren} on {@code ctx}.</p>
+     *
+     * @param ctx
+     */
     @Override
-    public void exitGlobaldeclaration(MinINGParser.GlobaldeclarationContext ctx) {
+    public Object visitLocaldeclaration(MinINGParser.LocaldeclarationContext ctx) {
         isGlobalScope = false;
+        return super.visitLocaldeclaration(ctx);
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>The default implementation returns the result of calling
+     * {@link #visitChildren} on {@code ctx}.</p>
+     *
+     * @param ctx
+     */
     @Override
-    public void enterLocaldeclaration(MinINGParser.LocaldeclarationContext ctx) {
-        isGlobalScope = false;
-    }
-    @Override
-    public void enterDeclaration(MinINGParser.DeclarationContext ctx) {
+    public Void visitDeclaration(MinINGParser.DeclarationContext ctx) {
         String type;
         if (ctx.TYPE() != null) {  // Add this null check
-             type = ctx.TYPE().getText();
+            type = ctx.TYPE().getText();
             System.out.println("Type: " + type);
         } else {
             System.err.println("Error: TYPE is null in declaration.");
-            return;
+            return null;
         }
         boolean isConstant = ctx.CONST() != null;
         int count=0;
@@ -51,7 +98,7 @@ public class CostumeMinINGListener extends MinINGBaseListener {
             symbol.setScope(scope);
             if (symbolTable.contains(name)) {
                 System.err.println("Error: Duplicate declaration for variable " + name);
-                return;
+                return null;
             }
             int lineNumber = ctx.start.getLine();
             symbol.setLineDeclarationNbr(lineNumber);
@@ -89,92 +136,45 @@ public class CostumeMinINGListener extends MinINGBaseListener {
             symbolTable.insert(name, symbol);
 
         }
-    }
-    @Override
-    public void enterAffectation(MinINGParser.AffectationContext ctx) {
-        String varName = ctx.ID().getText();
-        boolean symbol = symbolTable.contains(varName);
-        if (!symbol) {
-            System.err.println("Error: Variable " + varName + " not declared before usage.");
-            return;
-        }
-        if (symbolTable.isConstant(varName)) {
-            System.err.println("Error: Attempt to modify constant variable " + varName);
-            return;
-        } else {
-            String type = symbolTable.getType(varName);
-            String value = ctx.expr_arith().getText();
-            Object evaluatedValue = null;
-            try {
-                switch (type) {
-                    case "INTEGER" -> evaluatedValue = evaluate(value, "INTEGER");
-                    case "FLOAT" -> evaluatedValue = evaluate(value, "FLOAT");
-                    case "CHAR" -> {
-                        if (isChar(value)) {
-                            evaluatedValue = extractChar(value); // Get the character from 'a'
-                        } else {
-                            throw new IllegalArgumentException("Invalid CHAR value: " + value);
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                System.err.println("Error evaluating initial value for variable " + varName + ": " + e.getMessage());
-
-            }
-            symbolTable.setValue(varName,evaluatedValue);
-            int lineNumber = ctx.start.getLine();
-            symbolTable.addUsageLine(varName, lineNumber);
-
-        }
-    }
-    @Override
-    public void enterEntree(MinINGParser.EntreeContext ctx) {
-        String varName = ctx.ID().getText();
-        boolean symbol = symbolTable.contains(varName);
-        if (!symbol) {
-            System.err.println("Error: Variable " + varName + " not declared before usage.");
-            return;
-        }
-        if (symbolTable.isConstant(varName)) {
-            System.err.println("Error: Attempt to modify constant variable " + varName);
-            return;
-        }
-        String type = symbolTable.getType(varName);
-        Object value = null;
-        Scanner scanner = new Scanner(System.in);  // Assuming Scanner is used for input
-
-        try {
-            switch (type) {
-                case "INTEGER":
-                    value = Integer.parseInt(scanner.nextLine());
-                    break;
-                case "FLOAT":
-                    value = Float.parseFloat(scanner.nextLine());
-                    break;
-                case "CHAR":
-                    String charInput = scanner.nextLine();
-                    if (isChar(charInput)) {
-                        value = extractChar(charInput); // Get the character from 'a'
-                    } else {
-                        throw new IllegalArgumentException("Invalid CHAR value: " + charInput);
-                    }
-                    break;
-                default:
-                    System.err.println("Error: Unsupported type for variable " + varName);
-                    return;
-            }
-        } catch (Exception e) {
-            System.err.println("Error reading value for " + varName + ": " + e.getMessage());
-            return;
-        }
-        symbolTable.setValue(varName,value);
-        int lineNumber = ctx.start.getLine();
-        symbolTable.addUsageLine(varName, lineNumber);
+            return null;
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>The default implementation returns the result of calling
+     * {@link #visitChildren} on {@code ctx}.</p>
+     *
+     * @param ctx
+     */
     @Override
+    public Object visitArray_init(MinINGParser.Array_initContext ctx) {
+        return super.visitArray_init(ctx);
+    }
 
-    public void enterSortie(MinINGParser.SortieContext ctx) {
+    /**
+     * {@inheritDoc}
+     *
+     * <p>The default implementation returns the result of calling
+     * {@link #visitChildren} on {@code ctx}.</p>
+     *
+     * @param ctx
+     */
+    @Override
+    public Object visitInstruction(MinINGParser.InstructionContext ctx) {
+        return super.visitInstruction(ctx);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>The default implementation returns the result of calling
+     * {@link #visitChildren} on {@code ctx}.</p>
+     *
+     * @param ctx
+     */
+    @Override
+    public Object visitSortie(MinINGParser.SortieContext ctx) {
         for (ParseTree child : ctx.children) {
             if (child instanceof TerminalNode) {
                 TerminalNode terminalNode = (TerminalNode) child;
@@ -200,32 +200,83 @@ public class CostumeMinINGListener extends MinINGBaseListener {
                 }
             }
         }
-        System.out.println();
+        return null;
     }
-
-
-
 
     /**
      * {@inheritDoc}
      *
-     * <p>The default implementation does nothing.</p>
+     * <p>The default implementation returns the result of calling
+     * {@link #visitChildren} on {@code ctx}.</p>
      *
      * @param ctx
      */
-
     @Override
-    public void enterBoucle(MinINGParser.BoucleContext ctx) {
+    public Object visitEntree(MinINGParser.EntreeContext ctx) {
+        String varName = ctx.ID().getText();
+        boolean symbol = symbolTable.contains(varName);
+        if (!symbol) {
+            System.err.println("Error: Variable " + varName + " not declared before usage.");
+            return null;
+        }
+        if (symbolTable.isConstant(varName)) {
+            System.err.println("Error: Attempt to modify constant variable " + varName);
+            return null;
+        }
+        String type = symbolTable.getType(varName);
+        Object value = null;
+        Scanner scanner = new Scanner(System.in);  // Assuming Scanner is used for input
+
+        try {
+            switch (type) {
+                case "INTEGER":
+                    value = Integer.parseInt(scanner.nextLine());
+                    break;
+                case "FLOAT":
+                    value = Float.parseFloat(scanner.nextLine());
+                    break;
+                case "CHAR":
+                    String charInput = scanner.nextLine();
+                    if (isChar(charInput)) {
+                        value = extractChar(charInput); // Get the character from 'a'
+                    } else {
+                        throw new IllegalArgumentException("Invalid CHAR value: " + charInput);
+                    }
+                    break;
+                default:
+                    System.err.println("Error: Unsupported type for variable " + varName);
+                    return null;
+            }
+        } catch (Exception e) {
+            System.err.println("Error reading value for " + varName + ": " + e.getMessage());
+            return null;
+        }
+        symbolTable.setValue(varName,value);
+        int lineNumber = ctx.start.getLine();
+        symbolTable.addUsageLine(varName, lineNumber);
+        return super.visitEntree(ctx);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>The default implementation returns the result of calling
+     * {@link #visitChildren} on {@code ctx}.</p>
+     *
+     * @param ctx
+     */
+    @Override
+    public Object visitBoucle(MinINGParser.BoucleContext ctx) {
         String counterId = ctx.ID().getText(); // Counter identifier
 
         // Check if the counter variable is declared
         if (!symbolTable.contains(counterId)) {
             System.err.println("Error: Variable " + counterId + " not declared before usage.");
-            return;
+            return null;
         }
         if (symbolTable.isConstant(counterId)) {
             System.err.println("Error: Attempt to modify constant variable " + counterId);
-            return;
+            return null;
         }
         // Log usage of the loop counter
         symbolTable.addUsageLine(counterId, ctx.start.getLine());
@@ -239,11 +290,11 @@ public class CostumeMinINGListener extends MinINGBaseListener {
             symbolTable.setValue(counterId,start);
             if (step == 0) {
                 System.err.println("Error: Step value cannot be zero.");
-                return;
+                return null;
             }
             while ((step > 0 && (double) symbolTable.getValue(counterId) <= stop) || (step < 0 && (double) symbolTable.getValue(counterId) >= stop)) {
                 if (ctx.block() != null) {
-                    enterBlock(ctx.block());
+                    visitBlock(ctx.block());
                 }
                 // Update the counter variable in the symbol table
                 symbolTable.setValue(counterId,(double) symbolTable.getValue(counterId) + step);
@@ -252,88 +303,19 @@ public class CostumeMinINGListener extends MinINGBaseListener {
         } catch (IllegalArgumentException | ScriptException e) {
             System.err.println("Error in loop expressions: " + e.getMessage());
         }
+        return null;
     }
 
     /**
      * {@inheritDoc}
      *
-     * <p>The default implementation does nothing.</p>
+     * <p>The default implementation returns the result of calling
+     * {@link #visitChildren} on {@code ctx}.</p>
      *
      * @param ctx
      */
     @Override
-    public void enterBlock(MinINGParser.BlockContext ctx) {
-        // Enter a new block scope (if necessary for your symbol table implementation)
-        for (MinINGParser.InstructionContext instructionCtx : ctx.instruction()) {
-                // Dispatch to appropriate methods based on the type of instruction
-                if (instructionCtx.affectation() != null) {
-                    enterAffectation(instructionCtx.affectation());
-                } else if (instructionCtx.condition() != null) {
-                    enterCondition(instructionCtx.condition());
-                } else if (instructionCtx.boucle() != null) {
-                    enterBoucle(instructionCtx.boucle());
-                } else if (instructionCtx.entree() != null) {
-                    enterEntree(instructionCtx.entree());
-                } else if (instructionCtx.sortie() != null) {
-                    enterSortie(instructionCtx.sortie());
-                } else {
-                    System.err.println("Unknown instruction type at line " + instructionCtx.start.getLine());
-                }
-            }
-
-    }
-
-
-
-
-//    @Override
-//    public void enterBlock(MinINGParser.BlockContext ctx) {
-//        System.out.println("Processing block: " + ctx.start.getLine() + "-" + ctx.stop.getLine());
-//        contextStack.push(new HashSet<>());
-//        for (MinINGParser.InstructionContext instructionCtx : ctx.instruction()) {
-//            //enterInstruction(instructionCtx);
-//            System.out.println("this is the following instreuction"+instructionCtx.getText());
-//        }
-//        contextStack.pop();
-//    }
-//
-//    Set<String> processedInstructions = new HashSet<>();
-//
-//    @Override
-//    public void enterInstruction(MinINGParser.InstructionContext ctx) {
-//        if (contextStack.isEmpty() || !contextStack.peek().contains(ctx)) {
-//            if (!contextStack.isEmpty()) {
-//                contextStack.peek().add(ctx);
-//            }
-//
-//        System.out.println("Executing instruction: " + ctx.start.getLine() + "-" + ctx.stop.getLine());
-//        if (ctx.affectation() != null) {
-//            enterAffectation(ctx.affectation());
-//        } else if (ctx.condition() != null) {
-//            enterCondition(ctx.condition());
-//        } else if (ctx.boucle() != null) {
-//            enterBoucle(ctx.boucle());
-//        } else if (ctx.entree() != null) {
-//            enterEntree(ctx.entree());
-//        } else if (ctx.sortie() != null) {
-//            enterSortie(ctx.sortie());
-//        } else {
-//            System.err.println("Unknown instruction type at line " + ctx.start.getLine());
-//        }}
-//    }
-//
-//
-
-
-    /**
-     * {@inheritDoc}
-     *
-     * <p>The default implementation does nothing.</p>
-     *
-     * @param ctx
-     */
-    @Override
-    public void enterCondition(MinINGParser.ConditionContext ctx) {
+    public Object visitCondition(MinINGParser.ConditionContext ctx) {
         List<String> ids = new ArrayList<>();
         findIdentifiers(ctx.expr(), ids);
 
@@ -341,7 +323,7 @@ public class CostumeMinINGListener extends MinINGBaseListener {
         for (String id : ids) {
             if (!symbolTable.contains(id)) {
                 System.err.println("Error: Variable '" + id + "' used in condition is not declared.");
-                return;
+                return null;
             } else {
                 symbolTable.addUsageLine(id, ctx.start.getLine());
             }
@@ -369,10 +351,10 @@ public class CostumeMinINGListener extends MinINGBaseListener {
             if (result instanceof Boolean) {
                 boolean conditionResult = (Boolean) result;
                 if (conditionResult) {
-                    enterBlock(ctx.block(0));
+                    visitBlock(ctx.block(0));
                 } else if (ctx.ELSE() != null) {
 
-                    enterBlock(ctx.block(1));
+                    visitBlock(ctx.block(1));
                 }
             } else {
                 System.err.println("Error: Condition did not evaluate to a boolean.");
@@ -380,8 +362,85 @@ public class CostumeMinINGListener extends MinINGBaseListener {
         } catch (Exception e) {
             System.err.println("Error evaluating condition: " + e.getMessage());
         }
+    return null;
     }
-        // Check if the current node is an ID token
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>The default implementation returns the result of calling
+     * {@link #visitChildren} on {@code ctx}.</p>
+     *
+     * @param ctx
+     */
+    @Override
+    public Object visitAffectation(MinINGParser.AffectationContext ctx) {
+        String varName = ctx.ID().getText();
+        boolean symbol = symbolTable.contains(varName);
+        if (!symbol) {
+            System.err.println("Error: Variable " + varName + " not declared before usage.");
+            return null;
+        }
+        if (symbolTable.isConstant(varName)) {
+            System.err.println("Error: Attempt to modify constant variable " + varName);
+            return null;
+        } else {
+            String type = symbolTable.getType(varName);
+            String value = ctx.expr_arith().getText();
+            Object evaluatedValue = null;
+            try {
+                switch (type) {
+                    case "INTEGER" -> evaluatedValue = evaluate(value, "INTEGER");
+                    case "FLOAT" -> evaluatedValue = evaluate(value, "FLOAT");
+                    case "CHAR" -> {
+                        if (isChar(value)) {
+                            evaluatedValue = extractChar(value); // Get the character from 'a'
+                        } else {
+                            throw new IllegalArgumentException("Invalid CHAR value: " + value);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println("Error evaluating initial value for variable " + varName + ": " + e.getMessage());
+
+            }
+            symbolTable.setValue(varName,evaluatedValue);
+            int lineNumber = ctx.start.getLine();
+            symbolTable.addUsageLine(varName, lineNumber);
+
+        }
+        return null;
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>The default implementation returns the result of calling
+     * {@link #visitChildren} on {@code ctx}.</p>
+     *
+     * @param ctx
+     */
+    @Override
+    public Object visitBlock(MinINGParser.BlockContext ctx) {
+        for (MinINGParser.InstructionContext instructionCtx : ctx.instruction()) {
+            // Dispatch to appropriate methods based on the type of instruction
+            if (instructionCtx.affectation() != null) {
+                visitAffectation(instructionCtx.affectation());
+            } else if (instructionCtx.condition() != null) {
+                visitCondition(instructionCtx.condition());
+            } else if (instructionCtx.boucle() != null) {
+                visitBoucle(instructionCtx.boucle());
+            } else if (instructionCtx.entree() != null) {
+                visitEntree(instructionCtx.entree());
+            } else if (instructionCtx.sortie() != null) {
+                visitSortie(instructionCtx.sortie());
+            } else {
+                System.err.println("Unknown instruction type at line " + instructionCtx.start.getLine());
+            }
+        }
+        return null;
+    }
+
     private void findIdentifiers(ParseTree expr, List<String> ids) {
         if (expr instanceof TerminalNode && ((TerminalNode) expr).getSymbol().getType() == MinINGParser.ID) {
             ids.add(expr.getText());
@@ -446,18 +505,18 @@ public class CostumeMinINGListener extends MinINGBaseListener {
         try {
             double result = ExpressionEvaluator.evaluateExpression(expr, extractSymbolTableAsMap());
             switch (type) {
-            case "INTEGER":
-                if (result % 1 != 0) {
-                    throw new IllegalArgumentException("Expression result is not an integer: " + result);
-                }
-                return (int) result;
-            case "FLOAT":
-                return  result; // It's already a double
-            case "CHAR":
-                throw new IllegalArgumentException("Arithmetic expressions cannot evaluate to CHAR");
-            default:
-                throw new IllegalArgumentException("Unknown type: " + type);
-        }
+                case "INTEGER":
+                    if (result % 1 != 0) {
+                        throw new IllegalArgumentException("Expression result is not an integer: " + result);
+                    }
+                    return (int) result;
+                case "FLOAT":
+                    return  result; // It's already a double
+                case "CHAR":
+                    throw new IllegalArgumentException("Arithmetic expressions cannot evaluate to CHAR");
+                default:
+                    throw new IllegalArgumentException("Unknown type: " + type);
+            }
         } catch (Exception e) {
             e.printStackTrace(); // Log the exception or handle it as needed
             return null;
@@ -476,7 +535,7 @@ public class CostumeMinINGListener extends MinINGBaseListener {
     // Method to handle arithmetic expressions (this could involve parsing the expression further)
 
     private void handleArrayDeclaration(String name, Symbol symbol){
-        String baseName = name.substring(0, name.indexOf('['));
+        String baseName = extractArrayName(name);
         String arraySizeStr = name.substring(name.indexOf('[') + 1, name.indexOf(']'));
 
         try {
@@ -500,6 +559,17 @@ public class CostumeMinINGListener extends MinINGBaseListener {
 
         }
     }
+    private boolean isArray(String name){
+        return name.contains("[") && name.contains("]");
+    }
+    private String extractArrayName(String name){
+        return name.substring(0, name.indexOf('['));
+    }
+    private int extractArrayIndex(String name){
+        String indexStr = name.substring(name.indexOf('[') + 1, name.indexOf(']'));
+        return Integer.parseInt(indexStr);
+    }
+
     private void handleArrayInitial(String arrayContent, String type,Symbol symbol){
         arrayContent = arrayContent.substring(1, arrayContent.length() - 1); // Remove '[' and ']'
         String[] elements = arrayContent.split(","); // Split the array elements

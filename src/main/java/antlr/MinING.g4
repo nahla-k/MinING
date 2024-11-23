@@ -51,13 +51,13 @@ STRING_LITERAL: '"' (~["\r\n])* '"';
 
 VAR_GLOBAL: 'VAR_GLOBAL' ;
 DECLARATION: 'DECLARATION';
-INSTRUCTION: 'INSTRUCTION';
+INSTRUCTIONS: 'INSTRUCTION';
 
 
 
 prog: VAR_GLOBAL LBRACE globaldeclaration* RBRACE
      DECLARATION LBRACE localdeclaration* RBRACE
-     INSTRUCTION LBRACE instruction* RBRACE EOF; //i have to put eof or error handling won't work
+     INSTRUCTIONS block EOF; //i have to put eof or error handling won't work
 
 
 globaldeclaration: declaration;
@@ -78,16 +78,16 @@ expr_logical: expr_logical AND expr_logical
 
 expr_comparison: expr_arith (GT | LT | GE | LE | EQ | NEQ) expr_arith
                ;
-
 expr_arith: expr_arith (MULT | DIV) expr_arith
-          | expr_arith (PLUS | MINUS) expr_arith
-          | NUM
-          | ID
-          ;
+    | expr_arith (PLUS | MINUS) expr_arith
+    | LPAREN expr_arith RPAREN
+    | NUM
+    | ID
+    ;
 
 instruction: affectation | condition | boucle | entree | sortie ;
 
-sortie: WRITE LPAREN (STRING_LITERAL | ID) (COMA (STRING_LITERAL | ID))* RPAREN SEMICOLON;
+sortie: WRITE LPAREN (STRING_LITERAL | expr_arith) (COMA (STRING_LITERAL | expr_arith))* RPAREN SEMICOLON;
 entree: READ LPAREN  ID RPAREN SEMICOLON;
 boucle: FOR LPAREN ID EQUAL expr_arith TO expr_arith TO expr_arith RPAREN block;
 condition: IF LPAREN expr RPAREN block (ELSE block)? ;
