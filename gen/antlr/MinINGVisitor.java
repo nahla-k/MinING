@@ -35,6 +35,12 @@ public interface MinINGVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitDeclaration(MinINGParser.DeclarationContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link MinINGParser#indexing}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitIndexing(MinINGParser.IndexingContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link MinINGParser#array_init}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

@@ -1,139 +1,73 @@
+import org.apache.commons.jexl3.*;
+
 import javax.script.ScriptException;
 import java.util.*;
 
 public class ExpressionEvaluator {
+    private final SymbolTable symbolTable;
 
-    public static double evaluateExpression(String expr, Map<String, Double> symbolTable) throws Exception {
-        List<String> postfix = infixToPostfix(expr, symbolTable);
-        return evaluatePostfix(postfix);
+    public ExpressionEvaluator(SymbolTable symbolTable) {
+        this.symbolTable = symbolTable;
     }
 
-    private static List<String> infixToPostfix(String expr, Map<String, Double> symbolTable) throws Exception {
-        Stack<String> stack = new Stack<>();
-        List<String> output = new ArrayList<>();
-
-        StringTokenizer tokenizer = new StringTokenizer(expr, "+-*/() ", true);
-        while (tokenizer.hasMoreTokens()) {
-            String token = tokenizer.nextToken().trim();
-            if (token.isEmpty()) continue;
-
-            if (isNumeric(token)) {
-                output.add(token);
-            } else if (symbolTable.containsKey(token)) {
-                output.add(String.valueOf(symbolTable.get(token))); // Replace ID with value
-            } else if (token.equals("(")) {
-                stack.push(token);
-            } else if (token.equals(")")) {
-                while (!stack.isEmpty() && !stack.peek().equals("(")) {
-                    output.add(stack.pop());
-                }
-                if (stack.isEmpty() || !stack.pop().equals("(")) {
-                    throw new Exception("Mismatched parentheses");
-                }
-            } else if (isOperator(token)) {
-                while (!stack.isEmpty() && precedence(stack.peek()) >= precedence(token)) {
-                    output.add(stack.pop());
-                }
-                stack.push(token);
-            } else {
-                throw new Exception("Unknown token: " + token);
-            }
-        }
-
-        while (!stack.isEmpty()) {
-            String op = stack.pop();
-            if (op.equals("(") || op.equals(")")) {
-                throw new Exception("Mismatched parentheses");
-            }
-            output.add(op);
-        }
-
-        return output;
-    }
-
-    private static double evaluatePostfix(List<String> postfix) {
-        Stack<Double> stack = new Stack<>();
-
-        for (String token : postfix) {
-            if (isNumeric(token)) {
-                stack.push(Double.parseDouble(token));
-            } else if (isOperator(token)) {
-                double b = stack.pop();
-                double a = stack.pop();
-                stack.push(applyOperator(a, b, token));
-            }
-        }
-
-        return stack.pop();
-    }
-
-    private static boolean isNumeric(String token) {
+    public Object evaluateExpression(String expression) {
         try {
-            Double.parseDouble(token);
-            return true;
-        } catch (NumberFormatException e) {
-            return false;
-        }
-    }
+            JexlEngine jexl = new JexlBuilder().create();
+            JexlExpression jexlExpression = jexl.createExpression(expression);
+            JexlContext context = new MapContext();
 
-    private static boolean isOperator(String token) {
-        return "+-*/".contains(token);
-    }
+            // Populate the context with variables and their values from the symbol table
+            for (Map.Entry<String, Symbol> entry : symbolTable.getSymbols().entrySet()) {
+                String variableName = entry.getKey();
+                Object variableValue = entry.getValue().getValue(); // Assuming getValue() provides the stored value
+                context.set(variableName, variableValue);
+            }
 
-    private static int precedence(String op) {
-        if (op.equals("+") || op.equals("-")) return 1;
-        if (op.equals("*") || op.equals("/")) return 2;
-        return 0;
-    }
-
-    private static double applyOperator(double a, double b, String op) {
-        switch (op) {
-            case "+": return a + b;
-            case "-": return a - b;
-            case "*": return a * b;
-            case "/": return a / b;
-            default: throw new IllegalArgumentException("Unknown operator: " + op);
+            // Evaluate the expression
+            return jexlExpression.evaluate(context);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Error evaluating expression: " + e.getMessage(), e);
         }
     }
     ///**************************************************************************
-    private boolean evaluateCondition(String expr, SymbolTable symbolTable) throws ScriptException {
-        // Tokenize the expression by splitting based on spaces
-        String[] tokens = expr.split("\\s+");
-
-        // Stack for operands
-        Stack<Boolean> operandStack = new Stack<>();
-
-        // Stack for operators
-        Stack<String> operatorStack = new Stack<>();
-
-        for (String token : tokens) {
-            if (CostumeMinINGListener.isIdentifier(token)) { // If token is an identifier (variable)
-                if (!symbolTable.contains(token)) {
-                    throw new IllegalArgumentException("Undeclared identifier: " + token);
-                }
-                Object value = symbolTable.getSymbol(token).getValue();
-                if (value == null) {
-                    throw new IllegalArgumentException("Uninitialized identifier: " + token);
-                }
-                operandStack.push((Boolean) value); // Push the evaluated value to stack
-            } else if (isComparisonOperator(token)) {
-                // Process comparison operators: <, >, ==, etc.
-                Object left = operandStack.pop();
-                Object right = operandStack.pop();
-                boolean result = applyComparisonOperator(left, right, token);
-                operandStack.push(result); // Push the result to operand stack
-            } else if (isLogicalOperator(token)) {
-                // Process logical operators: &&, ||, !
-                boolean operand = operandStack.pop();
-                boolean result = applyLogicalOperator(operand, token);
-                operandStack.push(result); // Push the result to operand stack
-            } else {
-                throw new IllegalArgumentException("Invalid token: " + token);
-            }
-        }
-
-        return operandStack.pop(); // Return the final evaluation result
-    }
+//    private boolean evaluateCondition(String expr, SymbolTable symbolTable) throws ScriptException {
+//        // Tokenize the expression by splitting based on spaces
+//        String[] tokens = expr.split("\\s+");
+//
+//        // Stack for operands
+//        Stack<Boolean> operandStack = new Stack<>();
+//
+//        // Stack for operators
+//        Stack<String> operatorStack = new Stack<>();
+//
+//        for (String token : tokens) {
+//            if (CostumeMinINGListener.isIdentifier(token)) { // If token is an identifier (variable)
+//                if (!symbolTable.contains(token)) {
+//                    throw new IllegalArgumentException("Undeclared identifier: " + token);
+//                }
+//                Object value = symbolTable.getSymbol(token).getValue();
+//                if (value == null) {
+//                    throw new IllegalArgumentException("Uninitialized identifier: " + token);
+//                }
+//                operandStack.push((Boolean) value); // Push the evaluated value to stack
+//            } else if (isComparisonOperator(token)) {
+//                // Process comparison operators: <, >, ==, etc.
+//                Object left = operandStack.pop();
+//                Object right = operandStack.pop();
+//                boolean result = applyComparisonOperator(left, right, token);
+//                operandStack.push(result); // Push the result to operand stack
+//            } else if (isLogicalOperator(token)) {
+//                // Process logical operators: &&, ||, !
+//                boolean operand = operandStack.pop();
+//                boolean result = applyLogicalOperator(operand, token);
+//                operandStack.push(result); // Push the result to operand stack
+//            } else {
+//                throw new IllegalArgumentException("Invalid token: " + token);
+//            }
+//        }
+//
+//        return operandStack.pop(); // Return the final evaluation result
+//    }
 
     // Check if token is a comparison operator (like ==, >, <, etc.)
     private boolean isComparisonOperator(String token) {

@@ -38,8 +38,8 @@ CONST: 'CONST';
 
 
 
-ID: [A-Z]([a-z]|[0-9])*
-   | [A-Z]([a-z]|[0-9])* '[' INTEGER ']' ; //i have to make sure it's positive
+ID: [A-Z]([a-z]|[0-9])* ; //i have to make sure it's positive
+
 INTEGER: [0-9]+
         | '(' [+-]? [0-9]+ ')'
         ; //i have to add a semantic action later to limit numbers
@@ -62,8 +62,11 @@ prog: VAR_GLOBAL LBRACE globaldeclaration* RBRACE
 
 globaldeclaration: declaration;
 localdeclaration: declaration;
-declaration: TYPE ID (EQUAL initialValue)? (COMA ID (EQUAL initialValue)?)* SEMICOLON
-           | CONST TYPE ID EQUAL (initialValue) (COMA ID EQUAL initialValue)* SEMICOLON;
+declaration: TYPE indexing (EQUAL initialValue)? (COMA indexing (EQUAL initialValue)?)* SEMICOLON
+           | CONST TYPE indexing EQUAL (initialValue) (COMA indexing EQUAL initialValue)* SEMICOLON;
+indexing
+    : ID ('[' (expr_arith) ']')?
+    ; //to be able to manage arrays with arithmetic expressions as indexes (used as an id for a normal variable too)
 array_init: '[' (expr_arith|CHAR) (',' (expr_arith|CHAR))* ']' ;
 expr: expr_logical;
 initialValue:expr_arith|array_init|CHAR;
@@ -82,16 +85,15 @@ expr_arith: expr_arith (MULT | DIV) expr_arith
     | expr_arith (PLUS | MINUS) expr_arith
     | LPAREN expr_arith RPAREN
     | NUM
-    | ID
-    ;
+    | indexing;
 
 instruction: affectation | condition | boucle | entree | sortie ;
 
 sortie: WRITE LPAREN (STRING_LITERAL | expr_arith) (COMA (STRING_LITERAL | expr_arith))* RPAREN SEMICOLON;
-entree: READ LPAREN  ID RPAREN SEMICOLON;
-boucle: FOR LPAREN ID EQUAL expr_arith TO expr_arith TO expr_arith RPAREN block;
+entree: READ LPAREN  indexing RPAREN SEMICOLON;
+boucle: FOR LPAREN indexing EQUAL expr_arith TO expr_arith TO expr_arith RPAREN block;
 condition: IF LPAREN expr RPAREN block (ELSE block)? ;
-affectation: ID EQUAL expr_arith SEMICOLON;
+affectation: indexing EQUAL expr_arith SEMICOLON;
 block: LBRACE (instruction)* RBRACE;
 
 

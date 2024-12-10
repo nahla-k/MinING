@@ -77,6 +77,12 @@ public class Symbol {
         this.value = value;
         this.isInitialised=true;
     }
+    public void setArrayValue(Object value, int index) {
+        if (this.dimension==1) {
+            ((Object[]) this.value)[index] = value;
+        }
+        this.isInitialised=true;
+    }
 
     public Float getSize() {
         return size;
@@ -113,6 +119,13 @@ public class Symbol {
         this.arraySize = arraySize;
     }
 
+    public Object getArrayValue(int index) {
+        if (this.dimension==1) {
+            return ((Object[]) value)[index];
+        }else {
+            return null;
+        }
+    }
     @Override
     public String toString() {
         return "Symbol{" +

@@ -20,23 +20,9 @@ public class SymbolTable {
     public Set<String> getKeys() {
         return symbols.keySet(); // Directly call keySet() on the HashMap
     }
-    public boolean updateValue(String name, Object newValue) {
-        Symbol symbol = symbols.get(name);
-        if (symbol != null) {
-            symbol.setValue(newValue);
-            return true;
-        }
-        return false;
-    }
 
-    public boolean updateSize(String name, Float newSize) {
-        Symbol symbol = symbols.get(name);
-        if (symbol != null) {
-            symbol.setSize(newSize);
-            return true;
-        }
-        return false;
-    }
+
+
 
     // Method to update the offset of a symbol
     public boolean updateOffset(String name, String newOffset) {
@@ -55,6 +41,9 @@ public class SymbolTable {
 
     // Method to add a line of usage for a symbol
     public boolean addUsageLine(String name, int line) {
+        if (name.contains("[")) {
+            name = name.substring(0, name.indexOf("["));
+        }
         Symbol symbol = symbols.get(name);
         if (symbol != null) {
             symbol.getLinesOfUsage().add(line);
@@ -65,10 +54,27 @@ public class SymbolTable {
 
     // Retrieve a symbol (for inspection or other purposes)
     public Symbol getSymbol(String name) {
+        if (name.contains("[")) {
+            name = name.substring(0, name.indexOf("["));
+        }
         return symbols.get(name);
     }
+    public Object getValue(String name) {
+        if (name.contains("[")) {
+            name = name.substring(0, name.indexOf("["));
+            int index = Integer.parseInt(name.substring(name.indexOf("[")+1,name.indexOf("]")));
+            Symbol symbol = symbols.get(name);
+            return symbol != null ? symbol.getArrayValue(index) : null;
+        }else {
+        Symbol symbol = symbols.get(name);
+        return symbol != null ? symbol.getValue() : null;}
+    }
+
 
     public boolean contains(String name) {
+        if (name.contains("[")) {
+            name = name.substring(0, name.indexOf("["));
+        }
         Symbol symbol = symbols.get(name);
         return symbol != null ;
     }
@@ -81,27 +87,33 @@ public class SymbolTable {
     }
 
     public String getType(String name) {
+        if (name.contains("[")) {
+            name = name.substring(0, name.indexOf("["));
+        }
         Symbol symbol = symbols.get(name);
         return symbol != null ? symbol.getType() : null;
     }
 
     // Retrieve the scope of a symbol
     public String getScope(String name) {
+        if (name.contains("[")) {
+            name = name.substring(0, name.indexOf("["));
+        }
         Symbol symbol = symbols.get(name);
         return symbol != null ? symbol.getScope() : null;
     }
 
     // Retrieve the line number where the symbol was declared
-    public Integer getLineDeclarationNbr(String name) {
+    public Integer getLineDeclarationNbr(String name)
+    {
+        if (name.contains("[")) {
+            name = name.substring(0, name.indexOf("["));
+        }
         Symbol symbol = symbols.get(name);
         return symbol != null ? symbol.getLineDeclarationNbr() : null;
     }
 
     // Retrieve the value of a symbol
-    public Object getValue(String name) {
-        Symbol symbol = symbols.get(name);
-        return symbol != null ? symbol.getValue() : null;
-    }
 
     // Retrieve the size of a symbol
     public Float getSize(String name) {
@@ -129,6 +141,9 @@ public class SymbolTable {
 
     // Check if a symbol is a constant
     public Boolean isConstant(String name) {
+        if (name.contains("[")) {
+            name = name.substring(0, name.indexOf("["));
+        }
         Symbol symbol = symbols.get(name);
         return symbol != null && symbol.isConstant();
     }
@@ -138,11 +153,22 @@ public class SymbolTable {
 
     // Update the value of a symbol
     public void setValue(String name, Object value) {
+        if (name.contains("[")) {
+            int index = Integer.parseInt(name.substring(name.indexOf("[")+1,name.indexOf("]")));
+            name = name.substring(0, name.indexOf("["));
+            Symbol symbol = symbols.get(name);
+            if (symbol != null) {
+                symbol.setArrayValue( value,index);
+            }
+            return;
+        }
         Symbol symbol = symbols.get(name);
         if (symbol != null) {
             symbol.setValue(value);
         }
     }
 
-
+    public Map<String, Symbol> getSymbols() {
+        return symbols;
+    }
 }

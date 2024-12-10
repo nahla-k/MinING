@@ -48,6 +48,16 @@ public interface MinINGListener extends ParseTreeListener {
 	 */
 	void exitDeclaration(MinINGParser.DeclarationContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link MinINGParser#indexing}.
+	 * @param ctx the parse tree
+	 */
+	void enterIndexing(MinINGParser.IndexingContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MinINGParser#indexing}.
+	 * @param ctx the parse tree
+	 */
+	void exitIndexing(MinINGParser.IndexingContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link MinINGParser#array_init}.
 	 * @param ctx the parse tree
 	 */

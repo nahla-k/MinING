@@ -9,13 +9,17 @@ import javax.script.ScriptException;
 import java.util.*;
 
 public class CostumeMinINGBaseVisitor extends MinINGBaseVisitor {
-    private SymbolTable symbolTable;
+    private final SymbolTable symbolTable;
     private boolean isGlobalScope = false;
-    private Deque<Set<ParseTree>> contextStack = new ArrayDeque<>();
+    private final ArrayList<String> semanticErrors;
+    ExpressionEvaluator evaluator;
 
     public CostumeMinINGBaseVisitor(SymbolTable symbolTable) {
+        this.semanticErrors = new ArrayList<String>();
         this.symbolTable = symbolTable;
+        this.evaluator = new ExpressionEvaluator(symbolTable);
     }
+
     @Override
     public Object visitExpr(MinINGParser.ExprContext ctx) {
         return visitChildren(ctx);
@@ -83,21 +87,20 @@ public class CostumeMinINGBaseVisitor extends MinINGBaseVisitor {
         String type;
         if (ctx.TYPE() != null) {  // Add this null check
             type = ctx.TYPE().getText();
-            System.out.println("Type: " + type);
+
         } else {
-            System.err.println("Error: TYPE is null in declaration.");
-            return null;
-        }
+            semanticErrors.add("Error: TYPE is null in declaration.");
+            return null;}
         boolean isConstant = ctx.CONST() != null;
         int count=0;
 
-        for (TerminalNode idNode : ctx.ID()) {
-            String name = idNode.getText();
+        for (MinINGParser.IndexingContext indexingCtx : ctx.indexing()) {
+            String name = indexingCtx.getText();
             Symbol symbol = new Symbol(type, isConstant);
             String scope = isGlobalScope ? "GLOBAL" : "LOCAL";
             symbol.setScope(scope);
             if (symbolTable.contains(name)) {
-                System.err.println("Error: Duplicate declaration for variable " + name);
+                semanticErrors.add("Error: Duplicate declaration for variable " + name);
                 return null;
             }
             int lineNumber = ctx.start.getLine();
@@ -105,7 +108,6 @@ public class CostumeMinINGBaseVisitor extends MinINGBaseVisitor {
             if (name.contains("[")) { //in case it's an array
                 handleArrayDeclaration(name,symbol);
                 name = name.substring(0, name.indexOf('['));
-
                 if (count < ctx.initialValue().size() && ctx.initialValue(count) != null){ //in case the array is initialized
                     handleArrayInitial(ctx.initialValue(count).array_init().getText(),type,symbol);
                 }
@@ -114,9 +116,8 @@ public class CostumeMinINGBaseVisitor extends MinINGBaseVisitor {
                 String value = ctx.initialValue(count).getText();
                 Object evaluatedValue = null;
                 try {
-                    switch (type) {
-                        case "INTEGER" -> evaluatedValue = evaluate(value, "INTEGER");
-                        case "FLOAT" -> evaluatedValue = evaluate(value, "FLOAT");
+                    switch (type) { //maybe i'll add a check for the type of the value
+                        case "INTEGER", "FLOAT" -> evaluatedValue = evaluator.evaluateExpression(value);
                         case "CHAR" -> {
                             if (isChar(value)) {
                                 evaluatedValue = extractChar(value); // Get the character from 'a'
@@ -126,7 +127,7 @@ public class CostumeMinINGBaseVisitor extends MinINGBaseVisitor {
                         }
                     }
                 } catch (Exception e) {
-                    System.err.println("Error evaluating initial value for variable " + name + ": " + e.getMessage());
+                    semanticErrors.add("Error evaluating initial value for variable " + name + ": " + e.getMessage());
                     continue;
                 }
 
@@ -174,7 +175,10 @@ public class CostumeMinINGBaseVisitor extends MinINGBaseVisitor {
      * @param ctx
      */
     @Override
+
     public Object visitSortie(MinINGParser.SortieContext ctx) {
+        JexlEngine jexl = new JexlBuilder().create(); // Create a JEXL engine
+
         for (ParseTree child : ctx.children) {
             if (child instanceof TerminalNode) {
                 TerminalNode terminalNode = (TerminalNode) child;
@@ -182,27 +186,35 @@ public class CostumeMinINGBaseVisitor extends MinINGBaseVisitor {
                 // Handle string literals
                 if (terminalNode.getSymbol().getType() == MinINGLexer.STRING_LITERAL) {
                     String literal = terminalNode.getText();
-                    // Remove the surrounding double quotes
+                    // Remove surrounding double quotes
                     String value = literal.substring(1, literal.length() - 1);
-                    System.out.print(value + " ");
+                    System.out.print(value);
                 }
+            } else if (child instanceof MinINGParser.Expr_arithContext) {
+                // Evaluate arithmetic expression using JEXL
+                String expr = child.getText(); // Get the textual representation of the expression
+                try {
+                    JexlExpression jexlExpression = jexl.createExpression(expr);
+                    JexlContext context = new MapContext();
 
-                // Handle variable identifiers
-                else if (terminalNode.getSymbol().getType() == MinINGLexer.ID) {
-                    String name = terminalNode.getText();
-                    Symbol symbol = symbolTable.getSymbol(name);
-                    if (symbol == null) {
-                        System.err.println("\nError: Variable " + name + " not declared before usage.");
-                    } else {
-                        symbolTable.addUsageLine(name, ctx.start.getLine());
-                        System.out.print(symbol.value);
+                    // Populate context with variables from the symbol table
+                    for (Map.Entry<String, Symbol> entry : symbolTable.getSymbols().entrySet()) {
+                        String variableName = entry.getKey();
+                        Object variableValue = entry.getValue().getValue(); // Assuming getValue() gives the stored value
+                        context.set(variableName, variableValue);
                     }
+
+
+                    // Evaluate the expression
+                    Object result = jexlExpression.evaluate(context);
+                    System.out.print(result);
+                } catch (Exception e) {
+                    semanticErrors.add("Error evaluating arithmetic expression: " + e.getMessage());
                 }
             }
         }
         return null;
     }
-
     /**
      * {@inheritDoc}
      *
@@ -213,14 +225,14 @@ public class CostumeMinINGBaseVisitor extends MinINGBaseVisitor {
      */
     @Override
     public Object visitEntree(MinINGParser.EntreeContext ctx) {
-        String varName = ctx.ID().getText();
+        String varName = ctx.indexing().getText();
         boolean symbol = symbolTable.contains(varName);
         if (!symbol) {
-            System.err.println("Error: Variable " + varName + " not declared before usage.");
+            semanticErrors.add("Error: Variable " + varName + " not declared before usage.");
             return null;
         }
         if (symbolTable.isConstant(varName)) {
-            System.err.println("Error: Attempt to modify constant variable " + varName);
+            semanticErrors.add("Error: Attempt to modify constant variable " + varName);
             return null;
         }
         String type = symbolTable.getType(varName);
@@ -230,10 +242,10 @@ public class CostumeMinINGBaseVisitor extends MinINGBaseVisitor {
         try {
             switch (type) {
                 case "INTEGER":
-                    value = Integer.parseInt(scanner.nextLine());
+                    value = evaluator.evaluateExpression(scanner.nextLine());
                     break;
                 case "FLOAT":
-                    value = Float.parseFloat(scanner.nextLine());
+                    value = evaluator.evaluateExpression(scanner.nextLine());
                     break;
                 case "CHAR":
                     String charInput = scanner.nextLine();
@@ -248,7 +260,7 @@ public class CostumeMinINGBaseVisitor extends MinINGBaseVisitor {
                     return null;
             }
         } catch (Exception e) {
-            System.err.println("Error reading value for " + varName + ": " + e.getMessage());
+            semanticErrors.add("Error reading value for " + varName + ": " + e.getMessage());
             return null;
         }
         symbolTable.setValue(varName,value);
@@ -267,15 +279,15 @@ public class CostumeMinINGBaseVisitor extends MinINGBaseVisitor {
      */
     @Override
     public Object visitBoucle(MinINGParser.BoucleContext ctx) {
-        String counterId = ctx.ID().getText(); // Counter identifier
+        String counterId = ctx.indexing().getText(); // Counter identifier
 
         // Check if the counter variable is declared
         if (!symbolTable.contains(counterId)) {
-            System.err.println("Error: Variable " + counterId + " not declared before usage.");
+            semanticErrors.add("Error: Variable " + counterId + " not declared before usage.");
             return null;
         }
         if (symbolTable.isConstant(counterId)) {
-            System.err.println("Error: Attempt to modify constant variable " + counterId);
+            semanticErrors.add("Error: Attempt to modify constant variable " + counterId);
             return null;
         }
         // Log usage of the loop counter
@@ -283,13 +295,13 @@ public class CostumeMinINGBaseVisitor extends MinINGBaseVisitor {
 
         try {
             // Evaluate start, stop, and step using the counter's type
-            double start = (double) evaluate(ctx.expr_arith(0).getText(), "FLOAT");
-            double step = (double) evaluate(ctx.expr_arith(1).getText(), "FLOAT");
-            double stop = (double) evaluate(ctx.expr_arith(2).getText(), "FLOAT");
+            double start = (double) evaluator.evaluateExpression(ctx.expr_arith(0).getText());
+            double step = (double) evaluator.evaluateExpression(ctx.expr_arith(0).getText());
+            double stop = (double) evaluator.evaluateExpression(ctx.expr_arith(0).getText());
             // treating the loop logic
             symbolTable.setValue(counterId,start);
             if (step == 0) {
-                System.err.println("Error: Step value cannot be zero.");
+                semanticErrors.add("Error: Step value cannot be zero.");
                 return null;
             }
             while ((step > 0 && (double) symbolTable.getValue(counterId) <= stop) || (step < 0 && (double) symbolTable.getValue(counterId) >= stop)) {
@@ -300,8 +312,8 @@ public class CostumeMinINGBaseVisitor extends MinINGBaseVisitor {
                 symbolTable.setValue(counterId,(double) symbolTable.getValue(counterId) + step);
             }
 
-        } catch (IllegalArgumentException | ScriptException e) {
-            System.err.println("Error in loop expressions: " + e.getMessage());
+        } catch (IllegalArgumentException  e) {
+            semanticErrors.add("Error in loop expressions: " + e.getMessage());
         }
         return null;
     }
@@ -322,7 +334,7 @@ public class CostumeMinINGBaseVisitor extends MinINGBaseVisitor {
         // Ensure all identifiers in the condition are declared
         for (String id : ids) {
             if (!symbolTable.contains(id)) {
-                System.err.println("Error: Variable '" + id + "' used in condition is not declared.");
+                semanticErrors.add("Error: Variable '" + id + "' used in condition is not declared.");
                 return null;
             } else {
                 symbolTable.addUsageLine(id, ctx.start.getLine());
@@ -357,10 +369,10 @@ public class CostumeMinINGBaseVisitor extends MinINGBaseVisitor {
                     visitBlock(ctx.block(1));
                 }
             } else {
-                System.err.println("Error: Condition did not evaluate to a boolean.");
+                semanticErrors.add("Error: Condition did not evaluate to a boolean.");
             }
         } catch (Exception e) {
-            System.err.println("Error evaluating condition: " + e.getMessage());
+            semanticErrors.add("Error evaluating condition: " + e.getMessage());
         }
     return null;
     }
@@ -375,14 +387,14 @@ public class CostumeMinINGBaseVisitor extends MinINGBaseVisitor {
      */
     @Override
     public Object visitAffectation(MinINGParser.AffectationContext ctx) {
-        String varName = ctx.ID().getText();
+        String varName = ctx.indexing().getText();
         boolean symbol = symbolTable.contains(varName);
         if (!symbol) {
-            System.err.println("Error: Variable " + varName + " not declared before usage.");
+            semanticErrors.add("Error: Variable " + varName + " not declared before usage.");
             return null;
         }
         if (symbolTable.isConstant(varName)) {
-            System.err.println("Error: Attempt to modify constant variable " + varName);
+            semanticErrors.add("Error: Attempt to modify constant variable " + varName);
             return null;
         } else {
             String type = symbolTable.getType(varName);
@@ -401,7 +413,7 @@ public class CostumeMinINGBaseVisitor extends MinINGBaseVisitor {
                     }
                 }
             } catch (Exception e) {
-                System.err.println("Error evaluating initial value for variable " + varName + ": " + e.getMessage());
+                semanticErrors.add("Error evaluating initial value for variable " + varName + ": " + e.getMessage());
 
             }
             symbolTable.setValue(varName,evaluatedValue);
@@ -435,7 +447,7 @@ public class CostumeMinINGBaseVisitor extends MinINGBaseVisitor {
             } else if (instructionCtx.sortie() != null) {
                 visitSortie(instructionCtx.sortie());
             } else {
-                System.err.println("Unknown instruction type at line " + instructionCtx.start.getLine());
+                semanticErrors.add("Unknown instruction type at line " + instructionCtx.start.getLine());
             }
         }
         return null;
@@ -486,7 +498,7 @@ public class CostumeMinINGBaseVisitor extends MinINGBaseVisitor {
                 if (!symbolTable.contains(token)) {
                     throw new IllegalArgumentException("Undeclared identifier: " + token);
                 }
-                Object value = symbolTable.getSymbol(token).getValue();
+                Object value = symbolTable.getValue(token);
                 if (value == null  ) {
                     throw new IllegalArgumentException("Uninitialized identifier: " + token);
                 }
@@ -502,24 +514,16 @@ public class CostumeMinINGBaseVisitor extends MinINGBaseVisitor {
             }
         }
 
-        try {
-            double result = ExpressionEvaluator.evaluateExpression(expr, extractSymbolTableAsMap());
-            switch (type) {
-                case "INTEGER":
-                    if (result % 1 != 0) {
-                        throw new IllegalArgumentException("Expression result is not an integer: " + result);
-                    }
-                    return (int) result;
-                case "FLOAT":
-                    return  result; // It's already a double
-                case "CHAR":
-                    throw new IllegalArgumentException("Arithmetic expressions cannot evaluate to CHAR");
-                default:
-                    throw new IllegalArgumentException("Unknown type: " + type);
+        if (isArithmeticExpression(expr)) {
+            return evaluator.evaluateExpression(expr);
+        } else {
+            if (type.equals("INTEGER")) {
+                return Integer.parseInt(expr);
+            } else if (type.equals("FLOAT")) {
+                return Double.parseDouble(expr);
+            } else {
+                throw new IllegalArgumentException("Unsupported type: " + type);
             }
-        } catch (Exception e) {
-            e.printStackTrace(); // Log the exception or handle it as needed
-            return null;
         }
 
     }
@@ -537,25 +541,21 @@ public class CostumeMinINGBaseVisitor extends MinINGBaseVisitor {
     private void handleArrayDeclaration(String name, Symbol symbol){
         String baseName = extractArrayName(name);
         String arraySizeStr = name.substring(name.indexOf('[') + 1, name.indexOf(']'));
-
         try {
             int arraySize;
-
             try{
                 arraySize= (int) evaluate(arraySizeStr,"INTEGER");
             }catch (ScriptException e){
                 System.err.println(STR."Invalid value: \{e.getMessage()}");
                 return;
             }
-
-
             if (arraySize<=0){throw new NumberFormatException("Array size must be positive");
             }
             symbol.setDimension(1);
             symbol.setArraySize(arraySize);
-            name = baseName;
+
         } catch (NumberFormatException e) {
-            System.err.println("Error parsing array size for identifier: " + name);
+            semanticErrors.add("Error parsing array size for identifier: " + name + " - " + e.getMessage());
 
         }
     }
@@ -574,7 +574,6 @@ public class CostumeMinINGBaseVisitor extends MinINGBaseVisitor {
         arrayContent = arrayContent.substring(1, arrayContent.length() - 1); // Remove '[' and ']'
         String[] elements = arrayContent.split(","); // Split the array elements
         List<Object> evaluatedValues = new ArrayList<>();
-
         try {
             for (String element : elements) {
                 Object evaluatedValue;
@@ -596,8 +595,7 @@ public class CostumeMinINGBaseVisitor extends MinINGBaseVisitor {
             if (symbol.arraySize < evaluatedValues.size()){throw new Exception("Array size is inferior to the initizlized array");}
             symbol.setValue(evaluatedValues.toArray()); // Store the array values
         } catch (Exception e) {
-            System.err.println("Error parsing array initialization for identifier: " + " - " + e.getMessage());
-
+            semanticErrors.add("Error parsing array initialization for identifier: " + " - " + e.getMessage());
         }
     }
     private Map<String, Double> extractSymbolTableAsMap() {
