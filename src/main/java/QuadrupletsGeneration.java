@@ -174,30 +174,18 @@ public class QuadrupletsGeneration extends MinINGBaseVisitor {
 
 
 public Object visitCondition(MinINGParser.ConditionContext ctx) {
-    // 1. Process the condition expression (expr)
     String exprResult = (String) visit(ctx.expr());  // Get the result of the condition expression
-
-
-
-    // 3. Generate quadruplet for the comparison (depending on the condition type)
     int jumpToElse = addQuadruplet("BZ", "", exprResult, ""); // Branch if tempVar is 0 (false)
-
-    // 4. Handle the "IF" block (then block)
-    visitBlock(ctx.block(0));  // Visit the statements inside the IF block
-
-
-    // 6. Handle the "ELSE" block (if present)
+    visitBlock(ctx.block(0));  //visit the statements inside the IF block
     if (ctx.ELSE() != null) {
-        // 5. Generate a branch to skip the ELSE block (if any)
         int endIf = addQuadruplet("BR", "", "", "");  // Jump to the end of the IF block (after the ELSE if exists)
-
-        // The ELSE block exists, so we need to add a quadruplet to jump here if the condition is false
+        // the ELSE block exists, so we need to add a quadruplet to jump here if the condition is false
         updateQuadruplet(jumpToElse, String.valueOf(getQuadrupletsCount()+1)); // Update the "BZ" to jump to the ELSE block
         visitBlock(ctx.block(1));  // Visit the statements inside the ELSE block
-        // 7. Update the address for the final jump (to skip over the ELSE block if it exists)
-        updateQuadruplet(endIf, String.valueOf(getQuadrupletsCount()+1));  // Final jump to the end of the condition
+        // update the address for the final jump (to skip over the ELSE block if it exists)
+        updateQuadruplet(endIf, String.valueOf(getQuadrupletsCount()+1));
     }else {
-        updateQuadruplet(jumpToElse, String.valueOf(getQuadrupletsCount()+1)); // Update the "BZ" to jump to the ELSE block
+        updateQuadruplet(jumpToElse, String.valueOf(getQuadrupletsCount()+1));
 
     }
     return null;

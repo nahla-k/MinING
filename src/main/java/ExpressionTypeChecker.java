@@ -6,11 +6,10 @@ import java.util.*;
 
 public class ExpressionTypeChecker extends MinINGBaseVisitor<String> {
 
-    // Symbol table to store the variable names and their corresponding types
     private final Map<String, Symbol> symbolTable;
 
     public ExpressionTypeChecker(Map<String, Symbol> symbolTable) {
-        this.symbolTable = symbolTable; // Initialize with the provided symbol table
+        this.symbolTable = symbolTable;
     }
 
     @Override
@@ -45,7 +44,7 @@ public class ExpressionTypeChecker extends MinINGBaseVisitor<String> {
 
     @Override
     public String visitParens(MinINGParser.ParensContext ctx) {
-        // Traverse inside parentheses
+
         return visit(ctx.expr_arith());  // It should return the result of the inside expression
     }
 
@@ -79,19 +78,17 @@ public class ExpressionTypeChecker extends MinINGBaseVisitor<String> {
     @Override
     public String visitExpr_logical(MinINGParser.Expr_logicalContext ctx) {
         if (ctx.expr_comparison() != null) {
-            // Delegate to comparison expression visitor
             return visit(ctx.expr_comparison());
         } else if (ctx.expr_logical().size() == 1) {
             // Handle NOT operator
             return visit(ctx.expr_logical(0));
         } else if (ctx.expr_logical().size() == 2) {
             // Handle AND/OR operators
-            visit(ctx.expr_logical(0)); // Validate left subexpression
-            visit(ctx.expr_logical(1)); // Validate right subexpression
-            // No type compatibility checks needed for logical expressions
+            visit(ctx.expr_logical(0));
+            visit(ctx.expr_logical(1));
+            // no type compatibility checks needed for logical expressions
             return "BOOLEAN";
         } else if (ctx.LPAREN() != null) {
-            // Handle parentheses
             return visit(ctx.expr_logical(0));
         }
 

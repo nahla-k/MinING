@@ -3,14 +3,13 @@ import antlr.MinINGLexer;
 import antlr.MinINGParser;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
-import org.apache.commons.jexl3.*;
+
 
 import javax.script.ScriptException;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-//i have to handle when the initializatinon is in a condition/loop
 public class SemanticAnalysis extends MinINGBaseVisitor {
     private final SymbolTable symbolTable;
     private boolean isGlobalScope = false;
@@ -359,7 +358,7 @@ public class SemanticAnalysis extends MinINGBaseVisitor {
         List<String> ids = new ArrayList<>();
         findIdentifiers(ctx.expr(), ids);
 
-        // Ensure all identifiers in the condition are declared
+        // ensure all identifiers in the condition are declared
         for (String id : ids) {
             if (!symbolTable.contains(id)) {
                 semanticErrors.add("Error: Variable '" + id + "' used in condition is not declared.");
@@ -379,7 +378,6 @@ public class SemanticAnalysis extends MinINGBaseVisitor {
     }
     @Override
     public String visitExpr_comparison(MinINGParser.Expr_comparisonContext ctx) {
-        // Get the types of the left-hand and right-hand expressions
         String leftType = typeChecker.visit(ctx.expr_arith(0));
         String rightType = typeChecker.visit(ctx.expr_arith(1));
 
@@ -419,11 +417,10 @@ public class SemanticAnalysis extends MinINGBaseVisitor {
             return null;
         }
 
-        // Get the type of the variable
         String declaredType = symbolTable.getType(varName);
 
         if (ctx.STRING_LITERAL()==null){
-        // Evaluate the value based on the type
+
         String expressionType;
         try {
             expressionType = typeChecker.visit(ctx.expr_arith());
@@ -446,7 +443,6 @@ public class SemanticAnalysis extends MinINGBaseVisitor {
             }
         }
         symbolTable.initialise(varName);
-        // Log the usage of the variable
         int lineNumber = ctx.start.getLine();
         symbolTable.addUsageLine(varName, lineNumber);
 
@@ -488,7 +484,7 @@ public class SemanticAnalysis extends MinINGBaseVisitor {
             ids.add(expr.getText());
         }
 
-        // Recur through each child of the current expression
+
         for (int i = 0; i < expr.getChildCount(); i++) {
             findIdentifiers(expr.getChild(i), ids);
         }
@@ -551,7 +547,7 @@ public class SemanticAnalysis extends MinINGBaseVisitor {
         return expr.contains("+") || expr.contains("-") || expr.contains("*") || expr.contains("/");
     }
 
-    // Method to handle arithmetic expressions (this could involve parsing the expression further)
+
 
     private void handleArrayDeclaration(String name, Symbol symbol){
         String arraySizeStr = name.substring(name.indexOf('[') + 1, name.indexOf(']'));
@@ -590,8 +586,7 @@ public class SemanticAnalysis extends MinINGBaseVisitor {
             }}
             if (symbol.arraySize < count){throw new Exception("Array size is inferior to the initizlized array");}
             if (count < symbol.arraySize) {
-                // Handle if the array is not fully initialized (depends on language rules)
-                // You can either throw an error or fill remaining elements with default values
+
                 throw new Exception("Array not fully initialized; expected " + symbol.arraySize + " elements.");
             }
         } catch (Exception e) {
