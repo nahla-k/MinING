@@ -40,6 +40,7 @@ public class MinINGCompiler {
         for(Quadruple quad : quadruplets){
             System.out.println(quad);
         }
+        System.out.println(symbolTable);
     }
 }
 
