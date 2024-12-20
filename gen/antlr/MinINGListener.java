@@ -108,15 +108,77 @@ public interface MinINGListener extends ParseTreeListener {
 	 */
 	void exitExpr_comparison(MinINGParser.Expr_comparisonContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link MinINGParser#expr_arith}.
+	 * Enter a parse tree produced by the {@code parens}
+	 * labeled alternative in {@link MinINGParser#expr_arith}.
 	 * @param ctx the parse tree
 	 */
-	void enterExpr_arith(MinINGParser.Expr_arithContext ctx);
+	void enterParens(MinINGParser.ParensContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link MinINGParser#expr_arith}.
+	 * Exit a parse tree produced by the {@code parens}
+	 * labeled alternative in {@link MinINGParser#expr_arith}.
 	 * @param ctx the parse tree
 	 */
-	void exitExpr_arith(MinINGParser.Expr_arithContext ctx);
+	void exitParens(MinINGParser.ParensContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code AddSub}
+	 * labeled alternative in {@link MinINGParser#expr_arith}.
+	 * @param ctx the parse tree
+	 */
+	void enterAddSub(MinINGParser.AddSubContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code AddSub}
+	 * labeled alternative in {@link MinINGParser#expr_arith}.
+	 * @param ctx the parse tree
+	 */
+	void exitAddSub(MinINGParser.AddSubContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code num}
+	 * labeled alternative in {@link MinINGParser#expr_arith}.
+	 * @param ctx the parse tree
+	 */
+	void enterNum(MinINGParser.NumContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code num}
+	 * labeled alternative in {@link MinINGParser#expr_arith}.
+	 * @param ctx the parse tree
+	 */
+	void exitNum(MinINGParser.NumContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code char}
+	 * labeled alternative in {@link MinINGParser#expr_arith}.
+	 * @param ctx the parse tree
+	 */
+	void enterChar(MinINGParser.CharContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code char}
+	 * labeled alternative in {@link MinINGParser#expr_arith}.
+	 * @param ctx the parse tree
+	 */
+	void exitChar(MinINGParser.CharContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code id}
+	 * labeled alternative in {@link MinINGParser#expr_arith}.
+	 * @param ctx the parse tree
+	 */
+	void enterId(MinINGParser.IdContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code id}
+	 * labeled alternative in {@link MinINGParser#expr_arith}.
+	 * @param ctx the parse tree
+	 */
+	void exitId(MinINGParser.IdContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code MultDiv}
+	 * labeled alternative in {@link MinINGParser#expr_arith}.
+	 * @param ctx the parse tree
+	 */
+	void enterMultDiv(MinINGParser.MultDivContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code MultDiv}
+	 * labeled alternative in {@link MinINGParser#expr_arith}.
+	 * @param ctx the parse tree
+	 */
+	void exitMultDiv(MinINGParser.MultDivContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link MinINGParser#instruction}.
 	 * @param ctx the parse tree

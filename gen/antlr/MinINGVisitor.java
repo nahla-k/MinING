@@ -71,11 +71,47 @@ public interface MinINGVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitExpr_comparison(MinINGParser.Expr_comparisonContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link MinINGParser#expr_arith}.
+	 * Visit a parse tree produced by the {@code parens}
+	 * labeled alternative in {@link MinINGParser#expr_arith}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitExpr_arith(MinINGParser.Expr_arithContext ctx);
+	T visitParens(MinINGParser.ParensContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code AddSub}
+	 * labeled alternative in {@link MinINGParser#expr_arith}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitAddSub(MinINGParser.AddSubContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code num}
+	 * labeled alternative in {@link MinINGParser#expr_arith}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitNum(MinINGParser.NumContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code char}
+	 * labeled alternative in {@link MinINGParser#expr_arith}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitChar(MinINGParser.CharContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code id}
+	 * labeled alternative in {@link MinINGParser#expr_arith}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitId(MinINGParser.IdContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code MultDiv}
+	 * labeled alternative in {@link MinINGParser#expr_arith}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitMultDiv(MinINGParser.MultDivContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link MinINGParser#instruction}.
 	 * @param ctx the parse tree

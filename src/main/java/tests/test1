@@ -1,0 +1,24 @@
+VAR_GLOBAL {
+}
+
+DECLARATION {
+
+    CHAR Ac[5]="hello" ;
+    CHAR Tc[5];
+    INTEGER A=0;
+    INTEGER Arr[3], Idx;
+    FLOAT Frr[2];
+}
+
+INSTRUCTION {
+    Tc[0] = 'H';
+    Tc[1] = 'i';
+    Arr[0] = 1;
+    Arr[1] = 2;
+    Ac = "hello";
+    Idx = 1;
+    Arr[Idx] = Arr[0] + Arr[1];
+    Frr[0] = 3.5;
+    Frr[1] = Frr[0] * 2.0;
+    READ(Ac[Idx+1+Frr[1]]);
+}

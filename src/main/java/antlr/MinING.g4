@@ -1,24 +1,24 @@
 grammar MinING;
 
-LBRACE: '{';          // Represents the `{` symbol for opening a block
-RBRACE: '}';          // Represents the `}` symbol for closing a block
-EQUAL: '=';           // Represents the assignment operator `=`
-SEMICOLON: ';';       // Represents the end of an instruction `;`
-AND: '&&';            // Represents logical AND
-OR: '||';             // Represents logical OR
-NOT: '!';             // Represents logical NOT
-LT: '<';              // Represents less than `<`
-LE: '<=';             // Represents less than or equal to `<=`
-GT: '>';              // Represents greater than `>`
-GE: '>=';             // Represents greater than or equal to `>=`
-EQ: '==';             // Represents equality `==`
-NEQ: '!=';            // Represents inequality `!=`
-LPAREN: '(';          // Represents opening parenthesis `(`
-RPAREN: ')';          // Represents closing parenthesis `)`
-PLUS: '+';            // Represents addition `+`
-MINUS: '-';           // Represents subtraction `-`
-MULT: '*';            // Represents multiplication `*`
-DIV: '/';             // Represents division `/`
+LBRACE: '{';
+RBRACE: '}';
+EQUAL: '=';
+SEMICOLON: ';';
+AND: '&&';
+OR: '||';
+NOT: '!';
+LT: '<';
+LE: '<=';
+GT: '>';
+GE: '>=';
+EQ: '==';
+NEQ: '!=';
+LPAREN: '(';
+RPAREN: ')';
+PLUS: '+';
+MINUS: '-';
+MULT: '*';
+DIV: '/';
 TO: ':';
 COMA: ',';
 IF: 'IF';
@@ -38,7 +38,7 @@ CONST: 'CONST';
 
 
 
-ID: [A-Z]([a-z]|[0-9])* ; //i have to make sure it's positive
+ID: [A-Z]([a-z]|[0-9])* ;
 
 INTEGER: [0-9]+
         | '(' [+-]? [0-9]+ ')'
@@ -67,25 +67,26 @@ declaration: TYPE indexing (EQUAL initialValue)? (COMA indexing (EQUAL initialVa
 indexing
     : ID ('[' (expr_arith) ']')?
     ; //to be able to manage arrays with arithmetic expressions as indexes (used as an id for a normal variable too)
-array_init: '[' (expr_arith|CHAR) (',' (expr_arith|CHAR))* ']' ;
+array_init: '[' (expr_arith) (',' (expr_arith))* ']' ;
 expr: expr_logical;
-initialValue:expr_arith|array_init|CHAR;
-expr_logical: expr_logical AND expr_logical
+initialValue:expr_arith|array_init|STRING_LITERAL;
+expr_logical:expr_comparison
+            |expr_logical AND expr_logical
             | expr_logical OR expr_logical
             | NOT expr_logical
             | LPAREN expr_logical RPAREN
-            | expr_comparison
-            | expr_arith
-            | CHAR
             ;
 
-expr_comparison: expr_arith (GT | LT | GE | LE | EQ | NEQ) expr_arith
+expr_comparison: expr_arith op=(GT | LT | GE | LE | EQ | NEQ) expr_arith
                ;
-expr_arith: expr_arith (MULT | DIV) expr_arith
-    | expr_arith (PLUS | MINUS) expr_arith
-    | LPAREN expr_arith RPAREN
-    | NUM
-    | indexing;
+//earlier means higher precedence, associativity is left bu default
+expr_arith: expr_arith op= (MULT | DIV) expr_arith #MultDiv
+    | expr_arith op= (PLUS | MINUS) expr_arith     #AddSub
+    | LPAREN expr_arith RPAREN                     #parens
+    | NUM                                          #num
+    | CHAR                                         #char
+    | indexing                                     #id
+    ;
 
 instruction: affectation | condition | boucle | entree | sortie ;
 
@@ -93,7 +94,7 @@ sortie: WRITE LPAREN (STRING_LITERAL | expr_arith) (COMA (STRING_LITERAL | expr_
 entree: READ LPAREN  indexing RPAREN SEMICOLON;
 boucle: FOR LPAREN indexing EQUAL expr_arith TO expr_arith TO expr_arith RPAREN block;
 condition: IF LPAREN expr RPAREN block (ELSE block)? ;
-affectation: indexing EQUAL expr_arith SEMICOLON;
+affectation: indexing EQUAL (expr_arith|STRING_LITERAL) SEMICOLON; //i'll add string for tableau char later
 block: LBRACE (instruction)* RBRACE;
 
 

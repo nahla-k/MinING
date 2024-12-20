@@ -12,6 +12,12 @@ public class SymbolTable {
 
     // Method to add a new symbol
     public void insert(String name, Symbol symbol) {
+        if (name.contains("[")) {
+            int size = Integer.parseInt(name.substring(name.indexOf("[")+1,name.indexOf("]")));
+            name = name.substring(0, name.indexOf("["));
+            symbol.setDimension(1);
+            symbol.setArraySize(size);
+        }
         symbols.put(name, symbol);
     }
 
@@ -20,25 +26,6 @@ public class SymbolTable {
     public Set<String> getKeys() {
         return symbols.keySet(); // Directly call keySet() on the HashMap
     }
-
-
-
-
-    // Method to update the offset of a symbol
-    public boolean updateOffset(String name, String newOffset) {
-        Symbol symbol = symbols.get(name);
-        if (symbol != null) {
-            symbol.setOffset(newOffset);
-            return true;
-        }
-        return false;
-    }
-
-
-
-
-
-
     // Method to add a line of usage for a symbol
     public boolean addUsageLine(String name, int line) {
         if (name.contains("[")) {
@@ -115,22 +102,16 @@ public class SymbolTable {
 
     // Retrieve the value of a symbol
 
-    // Retrieve the size of a symbol
-    public Float getSize(String name) {
-        Symbol symbol = symbols.get(name);
-        return symbol != null ? symbol.getSize() : null;
-    }
 
-    // Retrieve the offset of a symbol
-    public String getOffset(String name) {
-        Symbol symbol = symbols.get(name);
-        return symbol != null ? symbol.getOffset() : null;
-    }
 
     // Retrieve the array size of a symbol (if it's an array)
     public Integer getArraySize(String name) {
         Symbol symbol = symbols.get(name);
         return symbol != null ? symbol.getArraySize() : null;
+    }
+    public Boolean isInitialised(String name){
+        Symbol symbol =symbols.get(name);
+        return symbol.isInitialised();
     }
 
     // Retrieve the dimension of a symbol (for arrays)
@@ -152,21 +133,18 @@ public class SymbolTable {
 
 
     // Update the value of a symbol
-    public void setValue(String name, Object value) {
+
+    public void initialise(String name){
         if (name.contains("[")) {
-            int index = Integer.parseInt(name.substring(name.indexOf("[")+1,name.indexOf("]")));
-            name = name.substring(0, name.indexOf("["));
+            //int index = Integer.parseInt(name.substring(name.indexOf("[")+1,name.indexOf("]")));
+            name = name.substring(0, name.indexOf("["));}
             Symbol symbol = symbols.get(name);
             if (symbol != null) {
-                symbol.setArrayValue( value,index);
+                symbol.setInitialised(true);
+                symbols.put(name, symbol);
             }
-            return;
-        }
-        Symbol symbol = symbols.get(name);
-        if (symbol != null) {
-            symbol.setValue(value);
-        }
     }
+
 
     public Map<String, Symbol> getSymbols() {
         return symbols;

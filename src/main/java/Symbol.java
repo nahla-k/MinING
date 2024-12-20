@@ -6,8 +6,6 @@ public class Symbol {
     String scope;
     Object value;
     boolean isInitialised;
-    Float size;
-    String offset;
     int lineDeclarationNbr;
     int dimension;
     int arraySize;
@@ -20,6 +18,14 @@ public class Symbol {
         linesOfUsage = new ArrayList<>();
         this.dimension=0;
         this.isInitialised=false;
+    }
+
+    public boolean isInitialised() {
+        return isInitialised;
+    }
+
+    public void setInitialised(boolean initialised) {
+        isInitialised = initialised;
     }
 
     public String getScope() {
@@ -50,15 +56,7 @@ public class Symbol {
         return linesOfUsage;
     }
 
-    public Symbol(String type, String scope, Object value, Float size, Object initialValue, String offset, int lineDeclarationNbr, int arraySize) {
-        this.type = type;
-        this.scope = scope;
-        this.value = value;
-        this.size = size;
-        this.offset = offset;
-        this.lineDeclarationNbr = lineDeclarationNbr;
-        this.arraySize = arraySize;
-    }
+
 
     public String getType() {
         return type;
@@ -84,24 +82,6 @@ public class Symbol {
         this.isInitialised=true;
     }
 
-    public Float getSize() {
-        return size;
-    }
-
-    public void setSize(Float size) {
-        this.size = size;
-    }
-
-
-
-
-    public String getOffset() {
-        return offset;
-    }
-
-    public void setOffset(String offset) {
-        this.offset = offset;
-    }
 
     public int getLineDeclarationNbr() {
         return lineDeclarationNbr;
@@ -133,8 +113,6 @@ public class Symbol {
                 ", scope='" + scope + '\'' +
                 ", value=" + value +
                 ", isInitialised=" + isInitialised +
-                ", size=" + size +
-                ", offset='" + offset + '\'' +
                 ", lineDeclarationNbr=" + lineDeclarationNbr +
                 ", dimension=" + dimension +
                 ", arraySize=" + arraySize +
@@ -143,5 +121,3 @@ public class Symbol {
                 '}';
     }
 }
-enum Type{INTEGER, CHAR, FLOAT}
-enum Scope{LOCAL, GLOBAL}
